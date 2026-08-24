@@ -1,0 +1,107 @@
+name: Build & Release Standalone Binaries
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Multiplatform Binaries & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun Runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Project Dependencies
+        run: bun install
+
+      - name: Build Nuxt with Inlined Static Assets
+        env:
+          NITRO_PRESET: bun
+        run: bun run build
+
+      - name: Compile Multiplatform Binaries
+        run: |
+          mkdir -p dist/binaries
+          
+          # Prepare server bundle dependencies for Bun compile
+          cd .output/server
+          bun install
+          bun add @vue/compiler-core @vue/runtime-core @vue/reactivity @vue/shared @vue/compiler-dom @vue/runtime-dom @vue/server-renderer
+          
+          echo "Compiling Windows x64 Executable (.exe)..."
+          bun build --compile --target=bun-windows-x64 ./index.mjs --outfile ../../dist/binaries/fluxcloud-windows-x64.exe
+          
+          echo "Compiling Linux x64 Standalone Binary..."
+          bun build --compile --target=bun-linux-x64 ./index.mjs --outfile ../../dist/binaries/fluxcloud-linux-x64
+          chmod +x ../../dist/binaries/fluxcloud-linux-x64
+          
+          echo "Compiling macOS x64 Standalone Binary..."
+          bun build --compile --target=bun-darwin-x64 ./index.mjs --outfile ../../dist/binaries/fluxcloud-macos-x64 || true
+          
+          echo "Compiling macOS ARM64 Standalone Binary..."
+          bun build --compile --target=bun-darwin-arm64 ./index.mjs --outfile ../../dist/binaries/fluxcloud-macos-arm64 || true
+          
+          cd ../..
+          ls -lah dist/binaries/
+
+      - name: Determine Next Incremental Release Version
+        id: next_version
+        run: |
+          git fetch --tags --force || true
+          LATEST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "v1.0.0")
+          echo "Current latest tag: $LATEST_TAG"
+          
+          if [[ "$LATEST_TAG" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+            NEW_PATCH=$((PATCH + 1))
+            NEW_TAG="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+          elif [[ "$LATEST_TAG" =~ ^v?([0-9]+)$ ]]; then
+            NUM="${BASH_REMATCH[1]}"
+            NEW_NUM=$((NUM + 1))
+            NEW_TAG="v${NEW_NUM}"
+          else
+            NEW_TAG="v1.0.1"
+          fi
+          
+          echo "Next release tag: $NEW_TAG"
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+      - name: Upload Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluxcloud-binaries-${{ steps.next_version.outputs.tag }}
+          path: dist/binaries/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Create GitHub Release & Attach Binaries
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.next_version.outputs.tag }}
+          name: FluxCloud Release ${{ steps.next_version.outputs.tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/binaries/fluxcloud-windows-x64.exe
+            dist/binaries/fluxcloud-linux-x64
+            dist/binaries/fluxcloud-macos-x64
+            dist/binaries/fluxcloud-macos-arm64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

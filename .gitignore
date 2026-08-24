@@ -1,0 +1,33 @@
+# Nuxt dev/build outputs
+.output/
+.data/
+.nuxt/
+.nitro/
+.cache/
+dist/
+
+# Node dependencies
+node_modules/
+package-lock.json
+
+# Storage & Runtime Data (User files, uploads, metadata, trash, config)
+data/
+data/*
+uploads/
+save/
+
+# Logs
+logs/
+*.log
+
+# Misc
+.DS_Store
+Thumbs.db
+.fleet/
+.idea/
+.vscode/
+
+# Local env files
+.env
+.env.*
+!.env.example

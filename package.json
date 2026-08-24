@@ -1,0 +1,31 @@
+{
+  "name": "nuxt-cdn",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "build:binary:win": "bun run build && cd .output/server && bun install && bun add @vue/compiler-core @vue/runtime-core @vue/reactivity @vue/shared @vue/compiler-dom @vue/runtime-dom @vue/server-renderer && bun build --compile --target=bun-windows-x64 ./index.mjs --outfile ../../dist/fluxcloud-windows-x64.exe",
+    "build:binary:linux": "bun run build && cd .output/server && bun install && bun add @vue/compiler-core @vue/runtime-core @vue/reactivity @vue/shared @vue/compiler-dom @vue/runtime-dom @vue/server-renderer && bun build --compile --target=bun-linux-x64 ./index.mjs --outfile ../../dist/fluxcloud-linux-x64",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@vue/compiler-dom": "^3.5.41",
+    "@vue/runtime-dom": "^3.5.41",
+    "@vue/server-renderer": "^3.5.41",
+    "@vue/shared": "^3.5.41",
+    "archiver": "^8.0.0",
+    "nuxt": "^4.4.8",
+    "vue": "^3.5.38",
+    "vue-router": "^5.1.0"
+  },
+  "devDependencies": {
+    "@lucide/vue": "^1.21.0",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@types/archiver": "^8.0.0",
+    "@vueuse/core": "^14.3.0",
+    "lucide-vue-next": "^1.0.0"
+  }
+}

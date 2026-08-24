@@ -1,0 +1,354 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for Light Mode */
+:root, html.light, body.light {
+  --app-bg: #f8fafc;
+  --app-card: #ffffff;
+  --app-surface: #f1f5f9;
+  --app-border: #e2e8f0;
+  --app-text: #0f172a;
+  --app-muted: #64748b;
+  --app-subtle: #94a3b8;
+  --app-hover: rgba(0, 0, 0, 0.04);
+  color-scheme: light;
+}
+
+/* CSS Variables for Dark Mode */
+html.dark, body.dark {
+  --app-bg: #09090b;
+  --app-card: #12131a;
+  --app-surface: #18181b;
+  --app-border: #27272a;
+  --app-text: #fafafa;
+  --app-muted: #cbd5e1;
+  --app-subtle: #e2e8f0;
+  --app-hover: rgba(255, 255, 255, 0.05);
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ===================================================
+   Global Dark Mode High-Legibility Text System
+   =================================================== */
+html.dark p,
+html.dark label,
+html.dark .text-\[\#475569\],
+html.dark .text-\[\#64748b\],
+html.dark .text-\[\#71717a\],
+html.dark .text-\[\#a1a1aa\],
+html.dark .text-slate-400,
+html.dark .text-slate-500,
+html.dark .text-zinc-400,
+html.dark .text-zinc-500,
+html.dark .text-gray-400,
+html.dark .text-gray-500 {
+  color: #e2e8f0 !important;
+}
+
+html.dark span.text-xs,
+html.dark .text-muted,
+html.dark .text-subtle {
+  color: #e2e8f0;
+}
+
+/* Glassmorphism System - Bright Frosted Nextcloud Glass */
+.has-wallpaper {
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.glass-header {
+  background-color: rgba(255, 255, 255, 0.86) !important;
+  backdrop-filter: blur(24px) saturate(180%) brightness(108%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(108%);
+}
+html.dark .glass-header {
+  background-color: rgba(24, 27, 38, 0.78) !important;
+  backdrop-filter: blur(24px) saturate(180%) brightness(125%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(125%);
+}
+
+.glass-sidebar {
+  background-color: rgba(255, 255, 255, 0.86) !important;
+  backdrop-filter: blur(28px) saturate(180%) brightness(108%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(108%);
+}
+html.dark .glass-sidebar {
+  background-color: rgba(24, 27, 38, 0.78) !important;
+  backdrop-filter: blur(28px) saturate(180%) brightness(125%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(125%);
+}
+
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(24px) saturate(180%) brightness(108%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(108%);
+}
+html.dark .glass-card {
+  background-color: rgba(28, 32, 45, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(180%) brightness(125%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(125%);
+}
+
+.glass-modal {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(32px) saturate(190%) brightness(106%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%) brightness(106%);
+}
+html.dark .glass-modal {
+  background-color: rgba(28, 32, 45, 0.88) !important;
+  backdrop-filter: blur(32px) saturate(190%) brightness(125%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%) brightness(125%);
+}
+
+.glass-dropdown {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+html.dark .glass-dropdown {
+  background-color: rgba(24, 27, 38, 0.96) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Concave Frosted Glass Inner Corner */
+.concave-glass-corner {
+  width: 20px;
+  height: 20px;
+  -webkit-mask-image: radial-gradient(circle 20px at 20px 20px, transparent 19.5px, black 20px);
+  mask-image: radial-gradient(circle 20px at 20px 20px, transparent 19.5px, black 20px);
+}
+
+/* Custom selection box style */
+.selection-box {
+  position: fixed;
+  border: 1.5px solid var(--accent-color, rgba(99, 102, 241, 0.7));
+  background-color: var(--accent-bg-alpha, rgba(99, 102, 241, 0.15));
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 6px;
+}
+
+:root {
+  --accent-color: #818CF8;
+  --accent-bg-alpha: rgba(129, 140, 248, 0.15);
+}
+
+.accent-text {
+  color: var(--accent-color) !important;
+}
+
+.accent-bg {
+  background-color: var(--accent-color) !important;
+}
+
+.accent-bg-alpha {
+  background-color: var(--accent-bg-alpha) !important;
+}
+
+.accent-bg-hover:hover {
+  filter: brightness(0.92);
+}
+
+.accent-border {
+  border-color: var(--accent-color) !important;
+}
+
+.accent-fill {
+  fill: var(--accent-color) !important;
+}
+
+/* Folder icons receive accent color */
+.folder-item-icon,
+html.accent-icons .folder-item-icon {
+  color: var(--accent-color) !important;
+}
+
+/* File icons (non-folders) are ALWAYS pure white in dark mode and dark slate in light mode */
+.file-item-icon,
+html.accent-icons .file-item-icon {
+  color: #334155;
+}
+
+.dark .file-item-icon,
+html.dark .file-item-icon,
+html.dark.accent-icons .file-item-icon {
+  color: #ffffff !important;
+}
+
+/* ===================================================
+   Keyframe Animations (Modals, Popups, Menus)
+   =================================================== */
+
+@keyframes fcBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fcModalIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.93) translateY(12px);
+  }
+  70% {
+    transform: scale(1.01) translateY(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fcMenuIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-modal-backdrop {
+  animation: fcBackdropIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-card {
+  animation: fcModalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-context-menu {
+  animation: fcMenuIn 0.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===================================================
+   Vue Transitions
+   =================================================== */
+
+/* Context Menu Spring Pop-in Transition */
+.context-menu-pop-enter-active {
+  transition: opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1), transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: top left;
+}
+.context-menu-pop-leave-active {
+  transition: opacity 0.1s ease-in, transform 0.1s ease-in;
+  transform-origin: top left;
+}
+.context-menu-pop-enter-from {
+  opacity: 0;
+  transform: scale(0.92) translateY(-6px);
+}
+.context-menu-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+/* Tab Views fade-slide transition */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* Modal dialogs Vue Transition */
+.modal-fade-enter-active {
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-fade-enter-active > div {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.modal-fade-leave-active {
+  transition: opacity 0.18s cubic-bezier(0.4, 0, 1, 1), backdrop-filter 0.18s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.modal-fade-leave-active > div {
+  transition: transform 0.18s cubic-bezier(0.4, 0, 1, 1), opacity 0.18s cubic-bezier(0.4, 0, 1, 1);
+  will-change: transform, opacity;
+}
+
+/* Enter Start */
+.modal-fade-enter-from {
+  opacity: 0;
+}
+.modal-fade-enter-from > div {
+  opacity: 0;
+  transform: scale(0.94) translateY(12px);
+}
+
+/* Enter End / Leave Start */
+.modal-fade-enter-to,
+.modal-fade-leave-from {
+  opacity: 1;
+}
+.modal-fade-enter-to > div,
+.modal-fade-leave-from > div {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Leave End */
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-leave-to > div {
+  opacity: 0;
+  transform: scale(0.95) translateY(8px);
+}
+
+/* Floating Action Bar (bottom selection bar) */
+.floating-bar-enter-active {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.floating-bar-leave-active {
+  transition: all 0.18s ease-in;
+}
+.floating-bar-enter-from {
+  opacity: 0;
+  transform: translate(-50%, 25px) scale(0.92);
+}
+.floating-bar-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 20px) scale(0.92);
+}
+
+/* Sidebar slide in/out transition */
+.slide-sidebar-enter-active {
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-sidebar-leave-active {
+  transition: all 0.2s cubic-bezier(0.7, 0, 0.84, 0);
+}
+.slide-sidebar-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+.slide-sidebar-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
