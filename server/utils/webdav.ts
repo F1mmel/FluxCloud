@@ -51,7 +51,21 @@ export async function handleWebDavRequest(event: H3Event, mountPrefix = '/dav') 
     })
   }
 
-  // 2. Authentication Check
+  const method = event.method.toUpperCase()
+  const rawPath = event.path || '/'
+
+  // 2. Handle OPTIONS discovery method first without requiring authentication
+  if (method === 'OPTIONS') {
+    setHeader(event, 'DAV', '1, 2')
+    setHeader(event, 'MS-Author-Via', 'DAV')
+    setHeader(event, 'Accept-Ranges', 'bytes')
+    setHeader(event, 'Allow', 'OPTIONS, GET, HEAD, POST, PUT, DELETE, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK')
+    setHeader(event, 'Content-Length', '0')
+    setResponseStatus(event, 200)
+    return ''
+  }
+
+  // 3. Authentication Check for all other methods
   const users = config.users || []
   const hasUsers = users.length > 0
   const authUser = getAuthenticatedUser(event)
@@ -66,10 +80,7 @@ export async function handleWebDavRequest(event: H3Event, mountPrefix = '/dav') 
 
   const username = authUser?.username || 'default'
 
-  // 3. Normalize requested path
-  const method = event.method.toUpperCase()
-  const rawPath = event.path || '/'
-  
+  // 4. Normalize requested path
   // Strip mount prefix
   let relativePath = rawPath
   if (relativePath.startsWith(mountPrefix)) {
@@ -85,17 +96,7 @@ export async function handleWebDavRequest(event: H3Event, mountPrefix = '/dav') 
   const fullFsPath = resolveUserUploadPath(username, safeRelPath)
   const baseHref = mountPrefix.endsWith('/') ? mountPrefix.slice(0, -1) : mountPrefix
 
-  // 4. Handle Standard WebDAV Methods
-
-  // A. OPTIONS: Capabilities discovery
-  if (method === 'OPTIONS') {
-    setHeader(event, 'DAV', '1, 2')
-    setHeader(event, 'MS-Author-Via', 'DAV')
-    setHeader(event, 'Allow', 'OPTIONS, GET, HEAD, POST, PUT, DELETE, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK')
-    setHeader(event, 'Content-Length', '0')
-    setResponseStatus(event, 200)
-    return ''
-  }
+  // 5. Handle Standard WebDAV Methods
 
   // B. PROPFIND: Directory / file metadata listing
   if (method === 'PROPFIND') {
@@ -176,7 +177,7 @@ export async function handleWebDavRequest(event: H3Event, mountPrefix = '/dav') 
 
     xml += `</D:multistatus>`
 
-    setHeader(event, 'Content-Type', 'application/xml; charset="utf-8"')
+    setHeader(event, 'Content-Type', 'application/xml; charset=utf-8')
     setResponseStatus(event, 207)
     return xml
   }
@@ -355,7 +356,7 @@ export async function handleWebDavRequest(event: H3Event, mountPrefix = '/dav') 
 
   // I. PROPPATCH: Set properties
   if (method === 'PROPPATCH') {
-    setHeader(event, 'Content-Type', 'application/xml; charset="utf-8"')
+    setHeader(event, 'Content-Type', 'application/xml; charset=utf-8')
     setResponseStatus(event, 207)
     return `<?xml version="1.0" encoding="utf-8"?>
 <D:multistatus xmlns:D="DAV:">
@@ -371,7 +372,7 @@ export async function handleWebDavRequest(event: H3Event, mountPrefix = '/dav') 
   // J. LOCK / UNLOCK: Windows Explorer / MS Office lock handling
   if (method === 'LOCK') {
     const lockId = crypto.randomUUID()
-    setHeader(event, 'Content-Type', 'application/xml; charset="utf-8"')
+    setHeader(event, 'Content-Type', 'application/xml; charset=utf-8')
     setHeader(event, 'Lock-Token', `<urn:uuid:${lockId}>`)
     setResponseStatus(event, 200)
 

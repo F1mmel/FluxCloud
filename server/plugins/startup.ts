@@ -25,7 +25,7 @@ export default defineNitroPlugin(() => {
     console.log('  ✨ FluxCloud is running!')
     console.log(`  🌐 Web App:    ${url}`)
     console.log(`  📁 Storage:    data/`)
-    console.log(`  🔌 WebDAV:     ${url}/webdav`)
+    console.log(`  🔌 WebDAV:     ${url}/dav/`)
     console.log('======================================================\n')
   }, 200)
 })

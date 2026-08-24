@@ -810,7 +810,7 @@ watch(() => props.config, (newVal) => {
 
 const currentOrigin = computed(() => {
   if (typeof window !== 'undefined') return window.location.origin
-  return 'http://localhost:3000'
+  return 'http://localhost:3033'
 })
 
 const webdavUrl = computed(() => {

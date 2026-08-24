@@ -13,7 +13,7 @@ package-lock.json
 # Storage & Runtime Data (User files, uploads, metadata, trash, config)
 data/
 data/*
-uploads/
+/uploads/
 save/
 
 # Logs

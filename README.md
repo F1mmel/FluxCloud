@@ -69,7 +69,7 @@ npm run dev
 
 4. Open your browser and navigate to:
 ```
-http://localhost:3000
+http://localhost:3033
 ```
 
 ### Production Deployment

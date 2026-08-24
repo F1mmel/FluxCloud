@@ -6,9 +6,9 @@
     "build": "nuxt build",
     "build:binary:win": "bun run build && cd .output/server && bun install && bun add @vue/compiler-core @vue/runtime-core @vue/reactivity @vue/shared @vue/compiler-dom @vue/runtime-dom @vue/server-renderer && bun build --compile --target=bun-windows-x64 ./index.mjs --outfile ../../dist/fluxcloud-windows-x64.exe",
     "build:binary:linux": "bun run build && cd .output/server && bun install && bun add @vue/compiler-core @vue/runtime-core @vue/reactivity @vue/shared @vue/compiler-dom @vue/runtime-dom @vue/server-renderer && bun build --compile --target=bun-linux-x64 ./index.mjs --outfile ../../dist/fluxcloud-linux-x64",
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --port 3033",
     "generate": "nuxt generate",
-    "preview": "nuxt preview",
+    "preview": "nuxt preview --port 3033",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
