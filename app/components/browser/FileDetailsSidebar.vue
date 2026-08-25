@@ -91,14 +91,16 @@
         <span>View Version History</span>
       </button>
 
-      <!-- Public Share Landing & Direct CDN Links -->
+      <!-- Share / Direct CDN Link -->
       <div class="border-t border-[#e2e8f0] dark:border-[#27272a] pt-4 mt-4 space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-1.5">
-            <GlobeIcon class="w-3.5 h-3.5 text-indigo-500" />
-            <span>Public Share Link</span>
+            <component :is="isItemShared ? GlobeIcon : LinkIcon" class="w-3.5 h-3.5" :class="isItemShared ? 'text-indigo-500' : 'text-cyan-500'" />
+            <span>{{ isItemShared ? 'Public Share Link' : 'Secure Direct CDN Link' }}</span>
           </span>
-          <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">Web Landing Page</span>
+          <span class="text-[10px] font-mono" :class="isItemShared ? 'text-indigo-600 dark:text-indigo-400' : 'text-emerald-600 dark:text-emerald-400'">
+            {{ isItemShared ? 'Web Landing Page' : 'Unguessable 128-bit' }}
+          </span>
         </div>
 
         <div class="flex items-center gap-1.5">
@@ -164,6 +166,8 @@ const props = defineProps({
 const emit = defineEmits(['close', 'action'])
 
 const { formatBytes, formatDate, isImage, isVideo, copyToClipboard, getQrCodeUrl } = useFileHelpers()
+const { isShared } = useShares()
+const { success } = useToast()
 const publicShareLandingUrl = ref('')
 const secureDirectUrl = ref('')
 
@@ -190,8 +194,12 @@ watch(() => props.item, async (newItem) => {
   }
 }, { immediate: true })
 
+const isItemShared = computed(() => {
+  return props.item && (isShared(props.item) || !!publicShareLandingUrl.value)
+})
+
 const displayDirectUrl = computed(() => {
-  if (publicShareLandingUrl.value) return publicShareLandingUrl.value
+  if (isItemShared.value && publicShareLandingUrl.value) return publicShareLandingUrl.value
   if (secureDirectUrl.value) return secureDirectUrl.value
   if (typeof window === 'undefined' || !props.item?.url) return ''
   return `${window.location.origin}${props.item.url}`
@@ -199,7 +207,8 @@ const displayDirectUrl = computed(() => {
 
 const copyDirectLink = async () => {
   if (await copyToClipboard(displayDirectUrl.value)) {
-    success('Share Link copied', 'Public share landing page URL copied to clipboard')
+    const msg = isItemShared.value ? 'Public share link copied to clipboard' : 'Direct CDN link copied to clipboard'
+    success('Link copied', msg)
   }
 }
 </script>

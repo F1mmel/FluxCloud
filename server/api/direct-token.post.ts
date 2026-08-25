@@ -57,50 +57,21 @@ export default defineEventHandler(async (event) => {
   const isDirectory = stat.isDirectory()
   const baseName = path.basename(fullPath)
 
-  // 1. Direct CDN Token
+  // 1. Direct CDN Token (stored in direct_tokens.json, completely independent of public shares)
   const token = getOrCreateDirectToken(canonicalPath)
   const directFileName = isDirectory ? `${baseName}.zip` : baseName
   const directUrl = `/d/${token}/${encodeURIComponent(directFileName)}`
   const directDownloadUrl = `/d/${token}/${encodeURIComponent(directFileName)}?download=1`
 
-  // 2. Public Share Landing Page Token
+  // 2. Check if a public share already exists (do NOT auto-create one)
   const shares = getShares()
-  let share = shares.find(s => s.targetPath === canonicalPath && (!s.username || s.username.toLowerCase() === username?.toLowerCase()))
-  if (!share) {
-    let shareId = crypto.randomBytes(6).toString('hex')
-    while (shares.some(s => s.id === shareId)) {
-      shareId = crypto.randomBytes(6).toString('hex')
-    }
-    const newShare: ShareRecord = {
-      id: shareId,
-      targetPath: canonicalPath,
-      isDirectory,
-      fileName: baseName,
-      passwordHash: null,
-      expiresAt: null,
-      maxDownloads: null,
-      downloadCount: 0,
-      viewCount: 0,
-      viewOnly: false,
-      allowUploads: false,
-      hideContents: false,
-      sharedWithUser: null,
-      permission: 'read',
-      createdAt: new Date().toISOString(),
-      username: username || null
-    }
-    shares.unshift(newShare)
-    saveShares(shares)
-    share = newShare
-  }
-
-  const publicShareUrl = `/s/${share.id}`
+  const existingShare = shares.find(s => s.targetPath === canonicalPath && (!s.username || s.username.toLowerCase() === username?.toLowerCase()))
 
   return {
     success: true,
     token,
-    shareId: share.id,
-    publicShareUrl,
+    shareId: existingShare ? existingShare.id : null,
+    publicShareUrl: existingShare ? `/s/${existingShare.id}` : null,
     fileName: baseName,
     isDirectory,
     directUrl,
