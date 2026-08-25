@@ -137,6 +137,7 @@
         :item="targetShareItem"
         @close="showShareModal = false"
         @created="handleShareCreated"
+        @revoked="handleShareRevoked"
       />
 
       <DirectLinkModal 
@@ -427,6 +428,14 @@ const handleShareCreated = (share) => {
   if (sharedViewRef.value?.loadShares) {
     sharedViewRef.value.loadShares()
   }
+}
+
+const handleShareRevoked = async (shareId) => {
+  await loadSharesCount()
+  if (sharedViewRef.value?.loadShares) {
+    await sharedViewRef.value.loadShares()
+  }
+  await refreshFiles()
 }
 
 const openPreviewModal = (item) => {

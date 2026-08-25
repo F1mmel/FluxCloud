@@ -131,14 +131,29 @@
 
             <!-- Modal Actions Footer -->
             <div class="flex items-center justify-between gap-3 pt-3 border-t border-black/5 dark:border-white/10 mt-1">
-              <button 
-                type="button"
-                @click="reconfigureShare" 
-                class="px-4 py-2 rounded-xl text-xs font-semibold border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#0f172a] dark:text-[#fafafa] transition-all shadow-sm active:scale-95 flex items-center gap-1.5 cursor-pointer"
-              >
-                <Settings2Icon class="w-3.5 h-3.5" />
-                <span>Reconfigure</span>
-              </button>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button"
+                  @click="reconfigureShare" 
+                  class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#0f172a] dark:text-[#fafafa] transition-all shadow-sm active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Settings2Icon class="w-3.5 h-3.5" />
+                  <span>Reconfigure</span>
+                </button>
+
+                <!-- Revoke / Delete Share Link Button -->
+                <button 
+                  type="button"
+                  @click="revokeShare" 
+                  :disabled="isRevoking"
+                  class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Revoke and delete this share link immediately"
+                >
+                  <Trash2Icon v-if="!isRevoking" class="w-3.5 h-3.5" />
+                  <Loader2Icon v-else class="w-3.5 h-3.5 animate-spin" />
+                  <span>Revoke</span>
+                </button>
+              </div>
 
               <button 
                 type="button"
@@ -353,11 +368,14 @@ import {
   UploadCloud as UploadCloudIcon,
   Globe as GlobeIcon,
   Users as UsersIcon,
-  EyeOff as EyeOffIcon
+  EyeOff as EyeOffIcon,
+  Trash2 as Trash2Icon,
+  Loader2 as Loader2Icon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
 import { useShares } from '../../composables/useShares'
+import { useConfirm } from '../../composables/useConfirm'
 import AppCheckbox from '../ui/AppCheckbox.vue'
 import AppSelect from '../ui/AppSelect.vue'
 
@@ -366,12 +384,14 @@ const props = defineProps({
   item: { type: Object, default: null }
 })
 
-const emit = defineEmits(['close', 'created'])
+const emit = defineEmits(['close', 'created', 'revoked'])
 
 const { copyToClipboard, getQrCodeUrl } = useFileHelpers()
 const { success, error } = useToast()
-const { markAsShared, activeShares, loadShares } = useShares()
+const { markAsShared, unmarkAsShared, activeShares, loadShares } = useShares()
+const { askConfirm } = useConfirm()
 
+const isRevoking = ref(false)
 const shareMode = ref('public') // 'public' | 'user'
 
 const expirationOptions = [
@@ -484,6 +504,36 @@ const reconfigureShare = () => {
     hideContents.value = !!createdShare.value.hideContents
   }
   createdShare.value = null
+}
+
+const revokeShare = async () => {
+  const shareId = createdShare.value?.id || activeExistingShare.value?.id || props.item?.shareId
+  if (!shareId) return
+
+  const confirmed = await askConfirm({
+    title: 'Revoke Share Link',
+    message: `Are you sure you want to revoke and delete the share link for "${props.item?.name || 'this item'}"? The public link will stop working immediately.`,
+    confirmText: 'Revoke Link',
+    cancelText: 'Cancel',
+    danger: true
+  })
+  if (!confirmed) return
+
+  isRevoking.value = true
+  try {
+    await $fetch(`/api/share/${shareId}`, { method: 'DELETE' })
+    unmarkAsShared(props.item, shareId)
+    await loadShares()
+    createdShare.value = null
+    activeExistingShare.value = null
+    success('Share Revoked', `Share link for "${props.item?.name || 'item'}" was deleted.`)
+    emit('revoked', shareId)
+    emit('close')
+  } catch (err) {
+    error('Revoke Failed', err?.data?.statusMessage || 'Failed to delete share link')
+  } finally {
+    isRevoking.value = false
+  }
 }
 
 const formatExpiry = (dateStr) => {
