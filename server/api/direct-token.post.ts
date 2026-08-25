@@ -1,11 +1,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { defineEventHandler, readBody, createError } from 'h3'
 import { 
   getOrCreateDirectToken, 
   resolveUploadPath, 
   sanitizeRelativePath, 
-  getMimeType 
+  getMimeType,
+  getShares,
+  saveShares,
+  ShareRecord
 } from '../utils/storage'
 import { getAuthenticatedUser, resolveUserUploadPath } from '../utils/auth'
 
@@ -51,16 +55,52 @@ export default defineEventHandler(async (event) => {
 
   const stat = fs.statSync(fullPath)
   const isDirectory = stat.isDirectory()
-
-  const token = getOrCreateDirectToken(canonicalPath)
   const baseName = path.basename(fullPath)
+
+  // 1. Direct CDN Token
+  const token = getOrCreateDirectToken(canonicalPath)
   const directFileName = isDirectory ? `${baseName}.zip` : baseName
   const directUrl = `/d/${token}/${encodeURIComponent(directFileName)}`
   const directDownloadUrl = `/d/${token}/${encodeURIComponent(directFileName)}?download=1`
 
+  // 2. Public Share Landing Page Token
+  const shares = getShares()
+  let share = shares.find(s => s.targetPath === canonicalPath && (!s.username || s.username.toLowerCase() === username?.toLowerCase()))
+  if (!share) {
+    let shareId = crypto.randomBytes(6).toString('hex')
+    while (shares.some(s => s.id === shareId)) {
+      shareId = crypto.randomBytes(6).toString('hex')
+    }
+    const newShare: ShareRecord = {
+      id: shareId,
+      targetPath: canonicalPath,
+      isDirectory,
+      fileName: baseName,
+      passwordHash: null,
+      expiresAt: null,
+      maxDownloads: null,
+      downloadCount: 0,
+      viewCount: 0,
+      viewOnly: false,
+      allowUploads: false,
+      hideContents: false,
+      sharedWithUser: null,
+      permission: 'read',
+      createdAt: new Date().toISOString(),
+      username: username || null
+    }
+    shares.unshift(newShare)
+    saveShares(shares)
+    share = newShare
+  }
+
+  const publicShareUrl = `/s/${share.id}`
+
   return {
     success: true,
     token,
+    shareId: share.id,
+    publicShareUrl,
     fileName: baseName,
     isDirectory,
     directUrl,

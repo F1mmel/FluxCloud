@@ -91,14 +91,14 @@
         <span>View Version History</span>
       </button>
 
-      <!-- Direct Secure CDN Link & QR Code -->
+      <!-- Public Share Landing & Direct CDN Links -->
       <div class="border-t border-[#e2e8f0] dark:border-[#27272a] pt-4 mt-4 space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-1.5">
-            <LinkIcon class="w-3.5 h-3.5 text-indigo-500" />
-            <span>Secure Direct CDN Link</span>
+            <GlobeIcon class="w-3.5 h-3.5 text-indigo-500" />
+            <span>Public Share Link</span>
           </span>
-          <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">Unguessable 128-bit</span>
+          <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">Web Landing Page</span>
         </div>
 
         <div class="flex items-center gap-1.5">
@@ -151,7 +151,8 @@ import {
   Download as DownloadIcon, 
   Link as LinkIcon, 
   Copy as CopyIcon,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Globe as GlobeIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
@@ -163,31 +164,34 @@ const props = defineProps({
 const emit = defineEmits(['close', 'action'])
 
 const { formatBytes, formatDate, isImage, isVideo, copyToClipboard, getQrCodeUrl } = useFileHelpers()
-const { success } = useToast()
-
+const publicShareLandingUrl = ref('')
 const secureDirectUrl = ref('')
 
 watch(() => props.item, async (newItem) => {
-  if (newItem && !newItem.isDirectory) {
+  if (newItem) {
     try {
       const res = await $fetch('/api/direct-token', {
         method: 'POST',
         body: { path: newItem.relativePath || newItem.name }
       })
       if (typeof window !== 'undefined') {
+        publicShareLandingUrl.value = res.publicShareUrl ? `${window.location.origin}${res.publicShareUrl}` : ''
         secureDirectUrl.value = `${window.location.origin}${res.directUrl}`
       }
     } catch {
       if (typeof window !== 'undefined') {
+        publicShareLandingUrl.value = ''
         secureDirectUrl.value = `${window.location.origin}${newItem.url || ''}`
       }
     }
   } else {
+    publicShareLandingUrl.value = ''
     secureDirectUrl.value = ''
   }
 }, { immediate: true })
 
 const displayDirectUrl = computed(() => {
+  if (publicShareLandingUrl.value) return publicShareLandingUrl.value
   if (secureDirectUrl.value) return secureDirectUrl.value
   if (typeof window === 'undefined' || !props.item?.url) return ''
   return `${window.location.origin}${props.item.url}`
@@ -195,7 +199,7 @@ const displayDirectUrl = computed(() => {
 
 const copyDirectLink = async () => {
   if (await copyToClipboard(displayDirectUrl.value)) {
-    success('Secure Link copied', 'Unguessable direct CDN link copied to clipboard')
+    success('Share Link copied', 'Public share landing page URL copied to clipboard')
   }
 }
 </script>
