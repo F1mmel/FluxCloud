@@ -160,7 +160,7 @@
           <span v-if="loadingProgress > 0" class="text-[11px] font-mono text-white/70">{{ loadingProgress }}% loaded</span>
         </div>
 
-        <!-- Left Page Thumbnails Sidebar -->
+        <!-- Left Page Thumbnails Sidebar with Live Previews -->
         <Transition name="slide-left">
           <div 
             v-if="showSidebar" 
@@ -171,7 +171,7 @@
               <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 font-mono">{{ totalPages }} pages</span>
             </div>
 
-            <!-- Thumbnail List -->
+            <!-- Live Thumbnail List -->
             <div class="flex-1 overflow-y-auto p-3 space-y-3">
               <div 
                 v-for="pageIndex in totalPages" 
@@ -180,26 +180,29 @@
                 class="group flex flex-col items-center p-2 rounded-xl border transition-all cursor-pointer"
                 :class="currentPage === pageIndex ? 'border-indigo-500 bg-indigo-500/15 shadow-md scale-[1.02]' : 'border-black/5 dark:border-white/10 hover:border-black/20 dark:hover:border-white/30 bg-white/40 dark:bg-white/5'"
               >
-                <!-- Thumbnail placeholder -->
-                <div class="w-full aspect-[1/1.4] bg-white dark:bg-[#1f2029] rounded-lg shadow-sm overflow-hidden flex items-center justify-center relative border border-black/5 dark:border-white/10">
-                  <span class="text-xs font-bold text-[#64748b] dark:text-[#a1a1aa] select-none">Page {{ pageIndex }}</span>
+                <!-- Miniature Preview Canvas -->
+                <div class="w-full aspect-[1/1.414] bg-white rounded-lg shadow-sm overflow-hidden flex items-center justify-center relative border border-black/5 dark:border-white/10">
+                  <canvas 
+                    :ref="el => setThumbnailCanvas(el, pageIndex)" 
+                    class="w-full h-full object-contain block bg-white"
+                  ></canvas>
                 </div>
                 <span class="text-[11px] font-bold mt-1 text-[#0f172a] dark:text-[#fafafa]">
-                  {{ pageIndex }}
+                  Page {{ pageIndex }}
                 </span>
               </div>
             </div>
           </div>
         </Transition>
 
-        <!-- Main PDF Canvas Viewport -->
+        <!-- Main PDF Canvas Viewport with Smooth Scroll & Wheel Page Flip -->
         <div 
           ref="viewportRef"
-          class="flex-1 h-full overflow-auto p-4 sm:p-8 flex flex-col items-center justify-start relative bg-[#525659]/80 dark:bg-[#18181b]/90 select-text"
-          @wheel.ctrl.prevent="handleWheelZoom"
+          class="flex-1 h-full overflow-y-auto overflow-x-auto p-4 sm:p-8 flex flex-col items-center justify-start relative bg-[#525659]/80 dark:bg-[#18181b]/90 select-text"
+          @wheel="handleViewportWheel"
         >
-          <!-- Canvas Wrapper with drop shadow -->
-          <div class="relative rounded-lg shadow-2xl transition-all duration-150 my-auto bg-white overflow-hidden">
+          <!-- Canvas Wrapper with drop shadow and margins for smooth scroll -->
+          <div class="relative rounded-lg shadow-2xl transition-all duration-150 my-4 bg-white overflow-hidden shrink-0">
             <canvas ref="canvasRef" class="rounded-lg max-w-none block bg-white"></canvas>
           </div>
         </div>
@@ -209,7 +212,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, markRaw, watch, nextTick } from 'vue'
+import { ref, shallowRef, markRaw, watch, nextTick, onBeforeUnmount } from 'vue'
 import { 
   FileText as FileTextIcon, 
   X as XIcon, 
@@ -252,6 +255,40 @@ const isLoading = ref(false)
 const loadingProgress = ref(0)
 const showSidebar = ref(false)
 let renderTask = null
+let isWheelFlipping = false
+const thumbnailCanvases = new Map()
+
+const setThumbnailCanvas = (el, pageIndex) => {
+  if (el) {
+    thumbnailCanvases.set(pageIndex, el)
+    if (pdfDoc.value && showSidebar.value) {
+      renderThumbnailPage(pageIndex, el)
+    }
+  } else {
+    thumbnailCanvases.delete(pageIndex)
+  }
+}
+
+const renderThumbnailPage = async (pageIndex, canvas) => {
+  if (!pdfDoc.value || !canvas) return
+  try {
+    const page = await pdfDoc.value.getPage(pageIndex)
+    const ctx = canvas.getContext('2d')
+    const viewport = page.getViewport({ scale: 0.22, rotation: rotation.value })
+    canvas.height = viewport.height
+    canvas.width = viewport.width
+    await page.render({ canvasContext: ctx, viewport }).promise
+  } catch (err) {
+    console.error('Error rendering thumbnail:', err)
+  }
+}
+
+const renderAllThumbnails = () => {
+  if (!pdfDoc.value) return
+  for (const [pageIndex, canvas] of thumbnailCanvases.entries()) {
+    renderThumbnailPage(pageIndex, canvas)
+  }
+}
 
 const loadPdfDocument = async () => {
   if (!props.item?.url) return
@@ -282,6 +319,10 @@ const loadPdfDocument = async () => {
     pdfDoc.value = markRaw(doc)
     totalPages.value = doc.numPages
     await renderCurrentPage()
+    
+    if (showSidebar.value) {
+      nextTick(() => renderAllThumbnails())
+    }
   } catch (err) {
     console.error('Failed to load PDF document:', err)
     error('PDF Error', 'Could not render PDF document.')
@@ -335,9 +376,19 @@ watch(() => props.show, async (newVal) => {
     await loadPdfDocument()
   } else {
     if (pdfDoc.value) {
-      pdfDoc.value.destroy()
+      try {
+        pdfDoc.value?.cleanup?.()
+      } catch {}
       pdfDoc.value = null
     }
+  }
+})
+
+watch(showSidebar, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      renderAllThumbnails()
+    })
   }
 })
 
@@ -404,6 +455,9 @@ const fitWidth = async () => {
 const rotateClockwise = async () => {
   rotation.value = (rotation.value + 90) % 360
   await renderCurrentPage()
+  if (showSidebar.value) {
+    renderAllThumbnails()
+  }
 }
 
 const toggleSidebar = () => {
@@ -420,11 +474,36 @@ const printPdf = () => {
   }
 }
 
-const handleWheelZoom = (e) => {
-  if (e.deltaY < 0) {
-    zoomIn()
-  } else {
-    zoomOut()
+const handleViewportWheel = (e) => {
+  if (e.ctrlKey) {
+    e.preventDefault()
+    if (e.deltaY < 0) zoomIn()
+    else zoomOut()
+    return
+  }
+
+  const el = viewportRef.value
+  if (!el || totalPages.value <= 1) return
+
+  const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 10
+  const isAtTop = el.scrollTop <= 10
+
+  if (e.deltaY > 50 && isAtBottom && currentPage.value < totalPages.value) {
+    if (!isWheelFlipping) {
+      isWheelFlipping = true
+      nextPage().then(() => {
+        if (viewportRef.value) viewportRef.value.scrollTop = 0
+        setTimeout(() => { isWheelFlipping = false }, 350)
+      })
+    }
+  } else if (e.deltaY < -50 && isAtTop && currentPage.value > 1) {
+    if (!isWheelFlipping) {
+      isWheelFlipping = true
+      prevPage().then(() => {
+        if (viewportRef.value) viewportRef.value.scrollTop = viewportRef.value.scrollHeight
+        setTimeout(() => { isWheelFlipping = false }, 350)
+      })
+    }
   }
 }
 
