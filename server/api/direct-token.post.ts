@@ -62,6 +62,7 @@ export default defineEventHandler(async (event) => {
   const directFileName = isDirectory ? `${baseName}.zip` : baseName
   const directUrl = `/d/${token}/${encodeURIComponent(directFileName)}`
   const directDownloadUrl = `/d/${token}/${encodeURIComponent(directFileName)}?download=1`
+  const directPreviewPageUrl = `/s/d-${token}`
 
   // 2. Check if a public share already exists (do NOT auto-create one)
   const shares = getShares()
@@ -70,6 +71,7 @@ export default defineEventHandler(async (event) => {
   return {
     success: true,
     token,
+    directPreviewPageUrl,
     shareId: existingShare ? existingShare.id : null,
     publicShareUrl: existingShare ? `/s/${existingShare.id}` : null,
     fileName: baseName,

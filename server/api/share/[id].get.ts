@@ -5,6 +5,8 @@ import {
   getShares, 
   saveShares, 
   resolveShareFullPath, 
+  resolveDirectToken,
+  resolveUploadPath,
   getMimeType, 
   getConfig 
 } from '../../utils/storage'
@@ -12,6 +14,57 @@ import {
 export default defineEventHandler((event) => {
   const params = getRouterParams(event)
   const id = params.id
+
+  // Handle direct preview tokens (starts with d-)
+  if (id && id.startsWith('d-')) {
+    const directToken = id.slice(2)
+    const relativePath = resolveDirectToken(directToken)
+    if (!relativePath) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Direct link not found or revoked'
+      })
+    }
+    const targetFullPath = resolveUploadPath(relativePath)
+    if (!fs.existsSync(targetFullPath)) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Target file or folder no longer exists'
+      })
+    }
+    const stat = fs.statSync(targetFullPath)
+    const isDirectory = stat.isDirectory()
+    const baseName = path.basename(targetFullPath)
+    const mimeType = isDirectory ? 'directory' : getMimeType(baseName)
+    const ext = isDirectory ? '' : path.extname(baseName).toLowerCase()
+    const config = getConfig()
+
+    return {
+      id,
+      fileName: baseName,
+      isDirectory,
+      size: isDirectory ? 0 : stat.size,
+      mimeType,
+      extension: ext,
+      hasPassword: false,
+      expiresAt: null,
+      maxDownloads: null,
+      downloadCount: 0,
+      viewOnly: false,
+      allowUploads: false,
+      hideContents: false,
+      createdAt: stat.birthtime ? stat.birthtime.toISOString() : new Date().toISOString(),
+      serverBranding: {
+        siteName: config.siteName,
+        color: config.color,
+        logo: config.logo,
+        backgroundImage: config.sharePageBackgroundEnabled ? (config.backgroundImage || '') : '',
+        backgroundBlur: config.backgroundBlur ?? 2,
+        backgroundBrightness: config.backgroundBrightness ?? 100,
+        sharePageBackgroundEnabled: !!config.sharePageBackgroundEnabled
+      }
+    }
+  }
 
   const shares = getShares()
   const share = shares.find(s => s.id === id)
