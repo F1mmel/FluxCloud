@@ -230,7 +230,6 @@ import {
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
-import * as pdfjsLib from 'pdfjs-dist'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -258,6 +257,35 @@ const showSidebar = ref(false)
 let renderTask = null
 let isWheelFlipping = false
 const thumbnailCanvases = new Map()
+
+// Dynamic browser-side loader for PDF.js (zero Node.js memory footprint)
+const initPdfJs = async () => {
+  if (typeof window === 'undefined') return null
+  if (window.pdfjsLib) return window.pdfjsLib
+
+  await new Promise((resolve, reject) => {
+    const existing = document.getElementById('pdfjs-cdn-script')
+    if (existing) {
+      if (window.pdfjsLib) return resolve()
+      existing.addEventListener('load', () => resolve())
+      existing.addEventListener('error', reject)
+      return
+    }
+    const script = document.createElement('script')
+    script.id = 'pdfjs-cdn-script'
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+    script.onload = () => {
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+      }
+      resolve()
+    }
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+
+  return window.pdfjsLib
+}
 
 const setThumbnailCanvas = (el, pageIndex) => {
   if (el) {
@@ -300,13 +328,12 @@ const loadPdfDocument = async () => {
   rotation.value = 0
 
   try {
-    // Dynamically guarantee worker version matches pdfjsLib version exactly
-    const ver = pdfjsLib.version || '4.10.38'
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${ver}/pdf.worker.min.mjs`
+    const lib = await initPdfJs()
+    if (!lib) throw new Error('PDF.js failed to initialize')
 
-    const loadingTask = pdfjsLib.getDocument({
+    const loadingTask = lib.getDocument({
       url: props.item.url,
-      cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${ver}/cmaps/`,
+      cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
       cMapPacked: true
     })
 

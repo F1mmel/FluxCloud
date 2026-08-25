@@ -2,15 +2,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import { defineEventHandler, getRouterParams, getQuery, setResponseHeaders, sendStream, createError } from 'h3'
-import { 
-  getShares, 
-  saveShares, 
-  resolveShareFullPath, 
-  resolveDirectToken,
-  resolveUploadPath,
-  getMimeType, 
+import {
+  getShares,
+  saveShares,
+  resolveShareFullPath,
+  getMimeType,
   sanitizeRelativePath,
-  hashPassword 
+  hashPassword
 } from '../../../utils/storage'
 
 const require = createRequire(import.meta.url)
@@ -23,60 +21,6 @@ export default defineEventHandler(async (event) => {
   const pwd = (query.pwd as string) || ''
   const subpath = sanitizeRelativePath((query.subpath as string) || '')
   const isInline = query.inline === '1' || query.inline === 'true'
-
-  // Handle direct preview tokens (starts with d-)
-  if (id && id.startsWith('d-')) {
-    const directToken = id.slice(2)
-    const relativePath = resolveDirectToken(directToken)
-    if (!relativePath) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Direct link not found or revoked'
-      })
-    }
-    const baseFullPath = resolveUploadPath(relativePath)
-    if (!fs.existsSync(baseFullPath)) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'File or folder no longer exists on server'
-      })
-    }
-    const targetFullPath = subpath ? path.join(baseFullPath, subpath) : baseFullPath
-    if (!fs.existsSync(targetFullPath)) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Requested item not found'
-      })
-    }
-    const stat = fs.statSync(targetFullPath)
-    if (stat.isDirectory()) {
-      const archive = archiver('zip', { zlib: { level: 1 } })
-      const baseName = path.basename(targetFullPath)
-      const zipName = `${baseName}.zip`
-      setResponseHeaders(event, {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(zipName)}"`,
-        'Cache-Control': 'no-cache, no-transform',
-        'X-Content-Type-Options': 'nosniff'
-      })
-      archive.directory(targetFullPath, baseName)
-      archive.finalize()
-      return sendStream(event, archive)
-    }
-
-    const fileName = path.basename(targetFullPath)
-    const mimeType = getMimeType(fileName)
-    const disposition = isInline ? 'inline' : 'attachment'
-    setResponseHeaders(event, {
-      'Content-Type': mimeType,
-      'Content-Length': stat.size.toString(),
-      'Content-Disposition': `${disposition}; filename="${encodeURIComponent(fileName)}"`,
-      'Cache-Control': 'public, max-age=86400',
-      'Accept-Ranges': 'bytes'
-    })
-    const stream = fs.createReadStream(targetFullPath)
-    return sendStream(event, stream)
-  }
 
   const shares = getShares()
   const share = shares.find(s => s.id === id)

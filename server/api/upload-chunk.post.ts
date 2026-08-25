@@ -130,14 +130,11 @@ export default defineEventHandler(async (event) => {
 
   for (let i = 0; i < totalChunks; i++) {
     const curChunkPath = path.join(chunkDir, `chunk_${i}`)
-    const chunkData = await fsPromises.readFile(curChunkPath)
     await new Promise<void>((resolve, reject) => {
-      const canWrite = finalWriteStream.write(chunkData)
-      if (!canWrite) {
-        finalWriteStream.once('drain', () => resolve())
-      } else {
-        resolve()
-      }
+      const readStream = fs.createReadStream(curChunkPath)
+      readStream.on('error', reject)
+      readStream.on('end', () => resolve())
+      readStream.pipe(finalWriteStream, { end: false })
     })
   }
 
