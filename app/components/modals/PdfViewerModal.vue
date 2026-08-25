@@ -4,6 +4,7 @@
       v-if="show && item" 
       class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-between p-2 sm:p-4 select-none overflow-hidden"
       @keydown="handleKeyDown"
+      @click.self="$emit('close')"
       tabindex="0"
       ref="modalContainerRef"
     >
