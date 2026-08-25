@@ -209,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, shallowRef, markRaw, watch, nextTick } from 'vue'
 import { 
   FileText as FileTextIcon, 
   X as XIcon, 
@@ -242,7 +242,7 @@ const canvasRef = ref(null)
 const viewportRef = ref(null)
 const modalContainerRef = ref(null)
 
-const pdfDoc = ref(null)
+const pdfDoc = shallowRef(null)
 const currentPage = ref(1)
 const pageInput = ref(1)
 const totalPages = ref(1)
@@ -278,8 +278,9 @@ const loadPdfDocument = async () => {
       }
     }
 
-    pdfDoc.value = await loadingTask.promise
-    totalPages.value = pdfDoc.value.numPages
+    const doc = await loadingTask.promise
+    pdfDoc.value = markRaw(doc)
+    totalPages.value = doc.numPages
     await renderCurrentPage()
   } catch (err) {
     console.error('Failed to load PDF document:', err)
