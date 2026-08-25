@@ -310,11 +310,23 @@
           </div>
 
           <!-- PDF -->
-          <iframe 
+          <div 
             v-else-if="isPdf(shareData.fileName)" 
-            :src="inlineUrl" 
-            class="w-full h-[65vh] rounded-xl border-0"
-          ></iframe>
+            class="flex flex-col items-center justify-center p-12 text-center"
+          >
+            <div class="p-5 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20 mb-4 shadow-md">
+              <FileTextIcon class="w-12 h-12" />
+            </div>
+            <h4 class="text-base font-bold text-[#0f172a] dark:text-[#fafafa] mb-1">{{ shareData.fileName }}</h4>
+            <p class="text-xs text-[#64748b] dark:text-[#cbd5e1] mb-6">Interactive PDF document with thumbnail preview, page jump, and zoom controls.</p>
+            <button 
+              @click="openSinglePdfModal"
+              class="flex items-center gap-2 px-6 py-3 accent-bg accent-bg-hover text-white rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 cursor-pointer"
+            >
+              <EyeIcon class="w-4 h-4" />
+              <span>Open PDF Document</span>
+            </button>
+          </div>
 
           <!-- Fallback -->
           <div v-else class="flex flex-col items-center justify-center text-center p-8 text-[#64748b] dark:text-[#71717a]">
@@ -332,6 +344,13 @@
       :uploading="isUploading"
       @close="showUploadModal = false"
       @upload="handleGuestUploadFromModal"
+    />
+
+    <!-- Dedicated Interactive PDF Viewer Modal -->
+    <PdfViewerModal 
+      :show="showPdfModal"
+      :item="targetPdfItem"
+      @close="showPdfModal = false"
     />
 
     <!-- Individual File Preview Lightbox (From inside shared folder) -->
@@ -420,11 +439,13 @@ import {
   UploadCloud as UploadCloudIcon,
   Search as SearchIcon,
   Eye as EyeIcon,
-  X as XIcon
+  X as XIcon,
+  FileText as FileTextIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
 import UploadModal from '../modals/UploadModal.vue'
+import PdfViewerModal from '../modals/PdfViewerModal.vue'
 
 const props = defineProps({
   shareId: { type: String, required: true }
@@ -440,6 +461,8 @@ const unlocked = ref(false)
 const passwordInput = ref('')
 const verifying = ref(false)
 const verifyError = ref('')
+const showPdfModal = ref(false)
+const targetPdfItem = ref(null)
 
 const hasCustomBackground = computed(() => {
   return !!(shareData.value?.serverBranding?.sharePageBackgroundEnabled && shareData.value?.serverBranding?.backgroundImage)
@@ -516,8 +539,27 @@ const handleItemClick = (item) => {
   }
 }
 
+const openSinglePdfModal = () => {
+  if (!shareData.value) return
+  targetPdfItem.value = {
+    name: shareData.value.fileName,
+    url: inlineUrl.value || downloadUrl.value,
+    size: shareData.value.fileSize || 0
+  }
+  showPdfModal.value = true
+}
+
 const openItemPreview = (item) => {
   if (shareData.value?.viewOnly) return
+  if (item && !item.isDirectory && isPdf(item.name)) {
+    targetPdfItem.value = {
+      name: item.name,
+      url: item.inlineUrl || item.downloadUrl,
+      size: item.size
+    }
+    showPdfModal.value = true
+    return
+  }
   activePreviewFile.value = item
 }
 

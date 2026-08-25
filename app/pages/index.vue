@@ -182,6 +182,13 @@
         @move="handleModalMove"
       />
 
+      <!-- Dedicated PDF Viewer Modal -->
+      <PdfViewerModal 
+        :show="showPdfModal"
+        :item="targetPdfItem"
+        @close="showPdfModal = false"
+      />
+
       <!-- Glassmorphic Confirmation Modal -->
       <ConfirmModal />
     </div>
@@ -212,11 +219,13 @@ import RenameModal from '../components/modals/RenameModal.vue'
 import MoveModal from '../components/modals/MoveModal.vue'
 import UploadManagerWidget from '../components/upload/UploadManagerWidget.vue'
 import ConfirmModal from '../components/modals/ConfirmModal.vue'
+import PdfViewerModal from '../components/modals/PdfViewerModal.vue'
 import { useToast } from '../composables/useToast'
 import { useTheme } from '../composables/useTheme'
 import { useAuth } from '../composables/useAuth'
 import { useUploadManager } from '../composables/useUploadManager'
 import { useConfirm } from '../composables/useConfirm'
+import { useFileHelpers } from '../composables/useFileHelpers'
 
 const route = useRoute()
 const router = useRouter()
@@ -376,6 +385,8 @@ const showDirectLinkModal = ref(false)
 const targetDirectLinkItem = ref(null)
 const showPreviewModal = ref(false)
 const targetPreviewItem = ref(null)
+const showPdfModal = ref(false)
+const targetPdfItem = ref(null)
 const showEditorModal = ref(false)
 const targetEditorItem = ref(null)
 const showStorageBreakdownModal = ref(false)
@@ -385,6 +396,8 @@ const isRenaming = ref(false)
 const showMoveModal = ref(false)
 const targetMoveItems = ref([])
 const isMoving = ref(false)
+
+const { isPdf } = useFileHelpers()
 
 const openShareModal = (item) => {
   targetShareItem.value = item
@@ -417,6 +430,11 @@ const handleShareCreated = (share) => {
 }
 
 const openPreviewModal = (item) => {
+  if (item && !item.isDirectory && isPdf(item.name)) {
+    targetPdfItem.value = item
+    showPdfModal.value = true
+    return
+  }
   targetPreviewItem.value = item
   showPreviewModal.value = true
 }
