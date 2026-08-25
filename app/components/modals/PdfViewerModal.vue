@@ -227,10 +227,6 @@ import {
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
 import * as pdfjsLib from 'pdfjs-dist'
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-
-// Set worker source locally from bundled package
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -266,9 +262,13 @@ const loadPdfDocument = async () => {
   rotation.value = 0
 
   try {
+    // Dynamically guarantee worker version matches pdfjsLib version exactly
+    const ver = pdfjsLib.version || '4.10.38'
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${ver}/pdf.worker.min.mjs`
+
     const loadingTask = pdfjsLib.getDocument({
       url: props.item.url,
-      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/cmaps/',
+      cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${ver}/cmaps/`,
       cMapPacked: true
     })
 
