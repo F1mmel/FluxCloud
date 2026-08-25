@@ -3,6 +3,7 @@ import path from 'node:path'
 import { defineEventHandler, readBody, createError } from 'h3'
 import { sanitizeRelativePath } from '../utils/storage'
 import { requireAuth, resolveUserUploadPath } from '../utils/auth'
+import { broadcastFileEvent } from '../utils/events'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -36,6 +37,9 @@ export default defineEventHandler(async (event) => {
   try {
     fs.mkdirSync(targetFolderDir, { recursive: true })
     const newFolderRelative = relativePath ? `${relativePath}/${safeFolderName}` : safeFolderName
+    
+    broadcastFileEvent(username, 'folder', { path: sanitizeRelativePath(newFolderRelative) })
+
     return { 
       success: true, 
       folderName: safeFolderName,

@@ -10,6 +10,7 @@ import {
   updateDirectTokenPath 
 } from '../utils/storage'
 import { requireAuth, resolveUserUploadPath } from '../utils/auth'
+import { broadcastFileEvent } from '../utils/events'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -97,6 +98,8 @@ export default defineEventHandler(async (event) => {
     if (sharesUpdated) {
       saveShares(shares)
     }
+
+    broadcastFileEvent(username, 'rename', { path: relativePath, targetPath: newRelativePath })
 
     return { 
       success: true, 

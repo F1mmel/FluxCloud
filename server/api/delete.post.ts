@@ -14,6 +14,7 @@ import {
   isShareTargetAvailable
 } from '../utils/storage'
 import { requireAuth, resolveUserUploadPath } from '../utils/auth'
+import { broadcastFileEvent } from '../utils/events'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -130,6 +131,8 @@ export default defineEventHandler(async (event) => {
   if (errors.length > 0) {
     return { success: false, errors }
   }
+
+  broadcastFileEvent(username, 'delete', { details: { paths: relativePaths } })
 
   return { 
     success: true, 

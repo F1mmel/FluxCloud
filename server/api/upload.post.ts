@@ -5,6 +5,7 @@ import { defineEventHandler, getQuery, getHeaders, readMultipartFormData, create
 import { sanitizeRelativePath, getMimeType } from '../utils/storage'
 import { requireAuth, resolveUserUploadPath } from '../utils/auth'
 import { createFileVersionSnapshot } from '../utils/versions'
+import { broadcastFileEvent } from '../utils/events'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -48,6 +49,8 @@ export default defineEventHandler(async (event) => {
       })
 
       const urlPath = `users/${user.username}/${safeRel}`
+
+      broadcastFileEvent(username, 'upload', { path: safeRel })
 
       return {
         success: true,
@@ -95,6 +98,8 @@ export default defineEventHandler(async (event) => {
         })
       }
     }
+
+    broadcastFileEvent(username, 'upload', { path: relativePath })
 
     return { success: true, files: uploadedFiles }
   } catch (error: any) {

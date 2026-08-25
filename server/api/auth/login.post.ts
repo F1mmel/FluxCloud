@@ -46,6 +46,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
+    token,
     user: {
       id: user.id,
       username: user.username,
