@@ -12,10 +12,12 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@vue/compiler-dom": "^3.5.41",
     "@vue/runtime-dom": "^3.5.41",
     "@vue/server-renderer": "^3.5.41",
     "@vue/shared": "^3.5.41",
+    "adm-zip": "^0.6.0",
     "archiver": "^8.0.0",
     "nuxt": "^4.4.8",
     "vue": "^3.5.38",

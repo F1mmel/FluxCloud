@@ -778,6 +778,7 @@ import { useToast } from '../../composables/useToast'
 import { useTheme } from '../../composables/useTheme'
 import { useAuth } from '../../composables/useAuth'
 import { useBackground } from '../../composables/useBackground'
+import { useConfirm } from '../../composables/useConfirm'
 import AppCheckbox from '../ui/AppCheckbox.vue'
 import AppSelect from '../ui/AppSelect.vue'
 
@@ -789,6 +790,7 @@ const emit = defineEmits(['saved'])
 
 const { copyToClipboard, formatBytes } = useFileHelpers()
 const { success, error } = useToast()
+const { askConfirm } = useConfirm()
 const { themeMode, setTheme, setAccentColor, accentIcons, setAccentIcons } = useTheme()
 const { currentUser } = useAuth()
 const { 
@@ -1008,7 +1010,15 @@ const handleCreateUser = async () => {
 }
 
 const handleDeleteUser = async (targetUser) => {
-  if (!confirm(`Are you sure you want to delete user "${targetUser.username}"?`)) return
+  const confirmed = await askConfirm({
+    title: 'Delete User Account?',
+    message: `Are you sure you want to permanently delete user account "${targetUser.username}"?\nThis user will lose access immediately.`,
+    confirmText: 'Delete User',
+    type: 'danger',
+    icon: 'user'
+  })
+  if (!confirmed) return
+
   try {
     await $fetch('/api/admin/users', {
       method: 'DELETE',

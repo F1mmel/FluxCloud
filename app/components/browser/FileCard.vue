@@ -4,9 +4,9 @@
     class="file-item-element group relative rounded-2xl p-3.5 flex flex-col items-center text-center cursor-pointer transition-all duration-200 glass-card border select-none hover:border-indigo-400 dark:hover:border-white/30 hover:-translate-y-1 active:scale-[0.98] shadow-sm hover:shadow-lg"
     :class="[
       isSelected ? 'accent-border shadow-md ring-1' : 'border-white/60 dark:border-white/10',
-      isDragOver ? 'border-dashed border-2 accent-border scale-105' : ''
+      isDragOver ? '!border-transparent shadow-md' : ''
     ]"
-    :style="isSelected ? 'background-color: var(--accent-bg-alpha); ring-color: var(--accent-color)' : (isDragOver ? 'background-color: var(--accent-bg-alpha)' : '')"
+    :style="isDragOver ? 'outline: 2px solid var(--accent-color); outline-offset: -2px; background-color: var(--accent-bg-alpha);' : (isSelected ? 'background-color: var(--accent-bg-alpha); ring-color: var(--accent-color)' : '')"
     @click="$emit('item-click', item, $event)"
     @mousedown.stop="$emit('item-mousedown', $event, item)"
     @mouseup.stop="$emit('item-mouseup', $event, item)"
@@ -14,6 +14,7 @@
     @contextmenu.prevent="$emit('item-contextmenu', $event, item)"
     draggable="true"
     @dragstart="$emit('item-dragstart', $event, item)"
+    @dragend="$emit('item-dragend', $event, item)"
     @dragover.prevent="$emit('item-dragover', $event, item)"
     @dragleave="$emit('item-dragleave', $event, item)"
     @drop.prevent="$emit('item-drop', $event, item)"
@@ -149,6 +150,7 @@ const emit = defineEmits([
   'item-dblclick',
   'item-contextmenu',
   'item-dragstart',
+  'item-dragend',
   'item-dragover',
   'item-dragleave',
   'item-drop',

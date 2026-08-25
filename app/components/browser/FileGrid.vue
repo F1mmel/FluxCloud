@@ -13,6 +13,7 @@
       @item-dblclick="(it) => $emit('item-dblclick', it)"
       @item-contextmenu="(e, it) => $emit('item-contextmenu', e, it)"
       @item-dragstart="(e, it) => $emit('item-dragstart', e, it)"
+      @item-dragend="(e, it) => $emit('item-dragend', e, it)"
       @item-dragover="(e, it) => $emit('item-dragover', e, it)"
       @item-dragleave="(e, it) => $emit('item-dragleave', e, it)"
       @item-drop="(e, it) => $emit('item-drop', e, it)"
@@ -42,6 +43,7 @@ defineEmits([
   'item-dblclick',
   'item-contextmenu',
   'item-dragstart',
+  'item-dragend',
   'item-dragover',
   'item-dragleave',
   'item-drop',

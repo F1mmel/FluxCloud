@@ -52,6 +52,17 @@ export default defineEventHandler((event) => {
     }
   }
 
+  // Check if blind upload / folder contents hidden
+  if (share.hideContents) {
+    return {
+      success: true,
+      currentPath: '',
+      folderName: share.fileName,
+      files: [],
+      isBlindUpload: true
+    }
+  }
+
   const baseFullPath = resolveShareFullPath(share)
   if (!baseFullPath || !fs.existsSync(baseFullPath)) {
     throw createError({

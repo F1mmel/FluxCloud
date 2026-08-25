@@ -16,6 +16,7 @@ export const DATA_DIR = path.resolve(ROOT_DIR, 'data')
 export const UPLOADS_DIR = path.join(DATA_DIR, 'uploads')
 export const TRASH_DIR = path.join(DATA_DIR, 'trash')
 export const THUMBNAILS_DIR = path.join(DATA_DIR, 'thumbnails')
+export const CHUNKS_DIR = path.join(DATA_DIR, 'chunks')
 export const CONFIG_PATH = path.join(DATA_DIR, 'config.json')
 export const SHARES_PATH = path.join(DATA_DIR, 'shares.json')
 export const META_PATH = path.join(DATA_DIR, 'meta.json')
@@ -40,6 +41,9 @@ export function ensureDataStructure() {
   }
   if (!fs.existsSync(THUMBNAILS_DIR)) {
     fs.mkdirSync(THUMBNAILS_DIR, { recursive: true })
+  }
+  if (!fs.existsSync(CHUNKS_DIR)) {
+    fs.mkdirSync(CHUNKS_DIR, { recursive: true })
   }
 
   // 1. Migrate legacy config.json if needed
@@ -195,6 +199,9 @@ export interface ShareRecord {
   viewCount: number
   viewOnly: boolean
   allowUploads?: boolean
+  hideContents?: boolean
+  sharedWithUser?: string | null
+  permission?: 'read' | 'write'
   createdAt: string
   username?: string | null
 }

@@ -21,6 +21,7 @@
         :config="config"
         :stats="storageStats"
         :shared-count="sharesList.length"
+        :shared-with-me-count="sharedWithMeList.length"
         :trash-count="trashCount"
         @update:active-tab="handleTabChange"
         @logout="handleLogout"
@@ -55,11 +56,27 @@
             @toggle-favorite="handleToggleFavorite"
             @upload-files="handleUploadFiles"
             @delete-items="handleDeleteItems"
+            @delete-items-permanent="handleDeleteItemsPermanent"
             @move-items="handleMoveItems"
             @download-zip="handleDownloadZip"
           />
 
-          <!-- 2. Shared Links Manager View -->
+          <!-- 2. Photos & Gallery View -->
+          <PhotosView 
+            v-else-if="activeTab === 'photos'"
+            key="tab-photos"
+            ref="photosViewRef"
+          />
+
+          <!-- 3. Shared with Me View -->
+          <SharedWithMeView 
+            v-else-if="activeTab === 'shared-with-me'"
+            key="tab-shared-with-me"
+            ref="sharedWithMeViewRef"
+            @open-preview="openPreviewModal"
+          />
+
+          <!-- 4. Shared Links Manager View -->
           <SharedView 
             v-else-if="activeTab === 'shared'"
             key="tab-shared"
@@ -67,7 +84,7 @@
             @edit-share="openShareModalFromShare"
           />
 
-          <!-- 3. Favorites View -->
+          <!-- 5. Favorites View -->
           <FavoritesView 
             v-else-if="activeTab === 'favorites'"
             key="tab-favorites"
@@ -76,7 +93,7 @@
             @open-preview="openPreviewModal"
           />
 
-          <!-- 4. Trash View -->
+          <!-- 6. Trash View -->
           <TrashView 
             v-else-if="activeTab === 'trash'"
             key="tab-trash"
@@ -84,7 +101,7 @@
             @trash-updated="trashCount = $event"
           />
 
-          <!-- 5. Settings View -->
+          <!-- 7. Settings View -->
           <SettingsView 
             v-else-if="activeTab === 'settings'"
             key="tab-settings"
@@ -94,6 +111,9 @@
           />
         </Transition>
       </div>
+
+      <!-- Floating Resumable Upload Manager Widget -->
+      <UploadManagerWidget />
 
       <!-- Modals -->
       <CreateFolderModal 
@@ -161,6 +181,9 @@
         @close="showMoveModal = false"
         @move="handleModalMove"
       />
+
+      <!-- Glassmorphic Confirmation Modal -->
+      <ConfirmModal />
     </div>
   </div>
 </template>
@@ -172,6 +195,8 @@ import { Loader2 as Loader2Icon } from 'lucide-vue-next'
 import AppSidebar from '../components/layout/AppSidebar.vue'
 import AuthView from '../components/auth/AuthView.vue'
 import FilesView from '../components/views/FilesView.vue'
+import PhotosView from '../components/views/PhotosView.vue'
+import SharedWithMeView from '../components/views/SharedWithMeView.vue'
 import SharedView from '../components/views/SharedView.vue'
 import FavoritesView from '../components/views/FavoritesView.vue'
 import TrashView from '../components/views/TrashView.vue'
@@ -185,18 +210,24 @@ import FileEditorModal from '../components/modals/FileEditorModal.vue'
 import StorageBreakdownModal from '../components/modals/StorageBreakdownModal.vue'
 import RenameModal from '../components/modals/RenameModal.vue'
 import MoveModal from '../components/modals/MoveModal.vue'
+import UploadManagerWidget from '../components/upload/UploadManagerWidget.vue'
+import ConfirmModal from '../components/modals/ConfirmModal.vue'
 import { useToast } from '../composables/useToast'
 import { useTheme } from '../composables/useTheme'
 import { useAuth } from '../composables/useAuth'
+import { useUploadManager } from '../composables/useUploadManager'
+import { useConfirm } from '../composables/useConfirm'
 
 const route = useRoute()
 const router = useRouter()
 const { success, error, info } = useToast()
 const { initTheme } = useTheme()
 const { currentUser, isAuthLoading, checkAuthStatus } = useAuth()
+const { enqueueFiles, completedCount } = useUploadManager()
+const { askConfirm } = useConfirm()
 
 // Global App State from URL Query params
-const validTabs = ['files', 'shared', 'favorites', 'trash', 'settings']
+const validTabs = ['files', 'photos', 'shared-with-me', 'shared', 'favorites', 'trash', 'settings']
 const initialTab = typeof route.query.tab === 'string' && validTabs.includes(route.query.tab) ? route.query.tab : 'files'
 const initialPath = typeof route.query.path === 'string' ? route.query.path : ''
 
@@ -207,6 +238,9 @@ const searchQuery = ref('')
 const categoryFilter = ref('all')
 const trashCount = ref(0)
 const sharesList = ref([])
+const sharedWithMeList = ref([])
+const photosViewRef = ref(null)
+const sharedWithMeViewRef = ref(null)
 
 // Sync URL query params with tab and folder path changes
 const syncUrlParams = () => {
@@ -281,6 +315,7 @@ onMounted(async () => {
   syncUrlParams()
   if (currentUser.value) {
     loadSharesCount()
+    loadSharedWithMe()
     loadTrashCount()
   }
 })
@@ -290,6 +325,7 @@ const refreshAll = async () => {
     refreshFiles(),
     refreshStats(),
     loadSharesCount(),
+    loadSharedWithMe(),
     loadTrashCount()
   ])
 }
@@ -298,6 +334,10 @@ const handleTabChange = async (tab) => {
   activeTab.value = tab
   if (tab === 'files') {
     await refreshFiles()
+  } else if (tab === 'photos') {
+    photosViewRef.value?.loadPhotos()
+  } else if (tab === 'shared-with-me') {
+    sharedWithMeViewRef.value?.loadSharedWithMe()
   } else if (tab === 'shared') {
     sharedViewRef.value?.loadShares()
   } else if (tab === 'favorites') {
@@ -440,33 +480,43 @@ const handleCreateFolder = async (folderName) => {
   }
 }
 
-const handleUploadFiles = async (fileList) => {
-  isUploading.value = true
-  const formData = new FormData()
-  for (let i = 0; i < fileList.length; i++) {
-    formData.append('file', fileList[i])
-  }
+const handleUploadFiles = (fileList) => {
+  showUploadModal.value = false
+  enqueueFiles(fileList, currentPath.value)
+  info('Upload started', `Queued ${fileList.length} files in Upload Manager`)
+}
 
-  try {
-    await $fetch(`/api/upload?path=${encodeURIComponent(currentPath.value)}`, {
-      method: 'POST',
-      body: formData
-    })
-    showUploadModal.value = false
-    await refreshFiles()
-    await refreshStats()
-    success('Upload complete', `Successfully uploaded ${fileList.length} files`)
-  } catch (err) {
-    if (!checkAuthError(err)) {
-      error('Upload failed', err?.data?.statusMessage || 'Error uploading files')
+watch(completedCount, (newVal, oldVal) => {
+  if (newVal > oldVal) {
+    refreshFiles()
+    refreshStats()
+    if (photosViewRef.value?.loadPhotos) {
+      photosViewRef.value.loadPhotos()
     }
-  } finally {
-    isUploading.value = false
+  }
+})
+
+const loadSharedWithMe = async () => {
+  try {
+    const res = await $fetch('/api/shared-with-me')
+    sharedWithMeList.value = res || []
+  } catch {
+    sharedWithMeList.value = []
   }
 }
 
 const handleDeleteItems = async (paths) => {
-  if (!confirm(`Are you sure you want to move ${paths.length} ${paths.length === 1 ? 'item' : 'items'} to Trash?`)) return
+  const isMulti = paths.length > 1
+  const confirmed = await askConfirm({
+    title: isMulti ? `Move ${paths.length} items to Trash?` : 'Move item to Trash?',
+    message: isMulti 
+      ? `Are you sure you want to move these ${paths.length} items to the Trash bin?` 
+      : `Are you sure you want to move "${paths[0].split('/').pop()}" to the Trash bin?`,
+    confirmText: 'Move to Trash',
+    type: 'warning',
+    icon: 'trash'
+  })
+  if (!confirmed) return
 
   try {
     await $fetch('/api/delete', {
@@ -476,10 +526,38 @@ const handleDeleteItems = async (paths) => {
     await refreshFiles()
     await refreshStats()
     await loadTrashCount()
-    success('Moved to Trash', `${paths.length} items moved to trash`)
+    success('Moved to Trash', `${paths.length} ${isMulti ? 'items' : 'item'} moved to trash`)
   } catch (err) {
     if (!checkAuthError(err)) {
       error('Delete failed', 'Could not move items to trash')
+    }
+  }
+}
+
+const handleDeleteItemsPermanent = async (paths) => {
+  const isMulti = paths.length > 1
+  const confirmed = await askConfirm({
+    title: isMulti ? `Permanently delete ${paths.length} items?` : 'Permanently delete item?',
+    message: isMulti 
+      ? `⚠️ This will permanently remove ${paths.length} items from your server disk.\nThis action CANNOT be undone!` 
+      : `⚠️ This will permanently remove "${paths[0].split('/').pop()}" from your server disk.\nThis action CANNOT be undone!`,
+    confirmText: 'Delete Permanently',
+    type: 'danger',
+    icon: 'flame'
+  })
+  if (!confirmed) return
+
+  try {
+    await $fetch('/api/delete', {
+      method: 'POST',
+      body: { paths, permanent: true }
+    })
+    await refreshFiles()
+    await refreshStats()
+    success('Permanently Deleted', `${paths.length} ${isMulti ? 'items' : 'item'} permanently deleted from disk`)
+  } catch (err) {
+    if (!checkAuthError(err)) {
+      error('Delete failed', err?.data?.statusMessage || 'Could not permanently delete items')
     }
   }
 }

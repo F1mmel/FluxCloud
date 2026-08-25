@@ -130,11 +130,13 @@ import {
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
 
 const emit = defineEmits(['trash-updated'])
 
 const { formatBytes, formatDate } = useFileHelpers()
 const { success, error } = useToast()
+const { askConfirm } = useConfirm()
 
 const trashItems = ref([])
 const loading = ref(false)
@@ -167,7 +169,16 @@ const restoreItem = async (id) => {
 }
 
 const deletePermanently = async (id) => {
-  if (!confirm('Are you sure you want to permanently delete this item? This action cannot be undone.')) return
+  const item = trashItems.value.find(t => t.id === id)
+  const confirmed = await askConfirm({
+    title: 'Delete permanently?',
+    message: `Are you sure you want to permanently delete "${item?.fileName || 'this item'}"?\nThis action cannot be undone.`,
+    confirmText: 'Delete Permanently',
+    type: 'danger',
+    icon: 'flame'
+  })
+  if (!confirmed) return
+
   try {
     await $fetch('/api/trash', {
       method: 'POST',
@@ -182,7 +193,15 @@ const deletePermanently = async (id) => {
 }
 
 const emptyTrash = async () => {
-  if (!confirm(`Are you sure you want to permanently empty ${trashItems.value.length} items from trash?`)) return
+  const confirmed = await askConfirm({
+    title: 'Empty Trash Bin?',
+    message: `Are you sure you want to permanently delete all ${trashItems.value.length} items from Trash?\nAll files will be wiped from disk immediately.`,
+    confirmText: 'Empty Trash',
+    type: 'danger',
+    icon: 'trash'
+  })
+  if (!confirmed) return
+
   try {
     await $fetch('/api/trash', {
       method: 'POST',

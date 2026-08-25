@@ -23,6 +23,31 @@
 
       <a 
         href="#" 
+        @click.prevent="$emit('update:activeTab', 'photos')" 
+        :class="activeTab === 'photos' ? 'bg-white/90 dark:bg-white/15 text-[#0f172a] dark:text-[#fafafa] font-semibold border-l-2 accent-border shadow-sm' : 'text-[#475569] dark:text-[#cbd5e1] hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0f172a] dark:hover:text-[#fafafa] font-medium'"
+        class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-all duration-200 active:scale-[0.98]"
+      >
+        <CameraIcon class="w-4.5 h-4.5 shrink-0" :class="activeTab === 'photos' ? 'text-purple-500' : ''" />
+        <span>Photos &amp; Gallery</span>
+      </a>
+
+      <a 
+        href="#" 
+        @click.prevent="$emit('update:activeTab', 'shared-with-me')" 
+        :class="activeTab === 'shared-with-me' ? 'bg-white/90 dark:bg-white/15 text-[#0f172a] dark:text-[#fafafa] font-semibold border-l-2 accent-border shadow-sm' : 'text-[#475569] dark:text-[#cbd5e1] hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0f172a] dark:hover:text-[#fafafa] font-medium'"
+        class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm transition-all duration-200 active:scale-[0.98]"
+      >
+        <div class="flex items-center gap-3">
+          <UsersIcon class="w-4.5 h-4.5 shrink-0" :class="activeTab === 'shared-with-me' ? 'text-indigo-500' : ''" />
+          <span>Shared with me</span>
+        </div>
+        <span v-if="sharedWithMeCount > 0" class="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-300 font-semibold">
+          {{ sharedWithMeCount }}
+        </span>
+      </a>
+
+      <a 
+        href="#" 
         @click.prevent="$emit('update:activeTab', 'shared')" 
         :class="activeTab === 'shared' ? 'bg-white/90 dark:bg-white/15 text-[#0f172a] dark:text-[#fafafa] font-semibold border-l-2 accent-border shadow-sm' : 'text-[#475569] dark:text-[#cbd5e1] hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0f172a] dark:hover:text-[#fafafa] font-medium'"
         class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm transition-all duration-200 active:scale-[0.98]"
@@ -79,7 +104,7 @@
       <div class="flex items-center justify-between p-1 bg-white/70 dark:bg-white/10 rounded-xl border border-black/10 dark:border-white/10 shadow-sm">
         <button 
           @click="setTheme('system')" 
-          class="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-xs font-medium transition-all"
+          class="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer"
           :class="themeMode === 'system' ? 'bg-white dark:bg-white/20 text-[#0f172a] dark:text-white shadow-sm font-semibold' : 'text-[#64748b] dark:text-[#cbd5e1] hover:text-[#0f172a] dark:hover:text-[#fafafa]'"
           title="System Default Theme"
         >
@@ -89,7 +114,7 @@
 
         <button 
           @click="setTheme('light')" 
-          class="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-xs font-medium transition-all"
+          class="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer"
           :class="themeMode === 'light' ? 'bg-white dark:bg-white/20 text-[#0f172a] dark:text-white shadow-sm font-semibold' : 'text-[#64748b] dark:text-[#cbd5e1] hover:text-[#0f172a] dark:hover:text-[#fafafa]'"
           title="Light Theme"
         >
@@ -99,7 +124,7 @@
 
         <button 
           @click="setTheme('dark')" 
-          class="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-xs font-medium transition-all"
+          class="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer"
           :class="themeMode === 'dark' ? 'bg-white dark:bg-white/20 text-[#0f172a] dark:text-white shadow-sm font-semibold' : 'text-[#64748b] dark:text-[#cbd5e1] hover:text-[#0f172a] dark:hover:text-[#fafafa]'"
           title="Dark Theme"
         >
@@ -116,7 +141,7 @@
       title="Click to view detailed storage analytics"
     >
       <div class="flex items-center justify-between text-xs mb-2">
-        <div class="flex items-center gap-1.5 text-[#475569] dark:text-[#cbd5e1] group-hover:text-indigo-500 transition-colors">
+        <div class="flex items-center gap-1.5 text-[#475569] dark:text-[#cbd5e1] group-hover:accent-text transition-colors">
           <HardDriveIcon class="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
           <span class="font-medium">My Storage</span>
         </div>
@@ -124,7 +149,7 @@
       </div>
 
       <!-- Progress bar -->
-      <div class="w-full bg-black/10 dark:bg-white/15 rounded-full h-1.5 overflow-hidden group-hover:ring-2 ring-indigo-500/30 transition-all">
+      <div class="storage-progress-track w-full bg-black/10 dark:bg-white/15 rounded-full h-1.5 overflow-hidden transition-all duration-200">
         <div 
           class="accent-bg h-full transition-all duration-500 rounded-full" 
           :style="{ width: `${Math.max(2, stats?.quotaUsedPercentage || 0)}%` }"
@@ -133,7 +158,7 @@
 
       <div class="flex items-center justify-between text-[11px] text-[#64748b] dark:text-[#cbd5e1] mt-2">
         <span>{{ stats?.fileCount || 0 }} files, {{ stats?.folderCount || 0 }} folders</span>
-        <span class="font-medium group-hover:text-indigo-500 transition-colors">{{ stats?.quotaUsedPercentage || 0 }}%</span>
+        <span class="font-medium group-hover:accent-text transition-colors">{{ stats?.quotaUsedPercentage || 0 }}%</span>
       </div>
     </div>
 
@@ -151,7 +176,7 @@
 
       <button 
         @click="handleLogout" 
-        class="p-2 text-[#64748b] dark:text-[#71717a] hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/10 rounded-xl transition-colors"
+        class="p-2 text-[#64748b] dark:text-[#71717a] hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
         title="Sign Out"
       >
         <LogOutIcon class="w-4 h-4" />
@@ -164,6 +189,8 @@
 import { onMounted } from 'vue'
 import { 
   Folder as FolderIcon, 
+  Camera as CameraIcon,
+  Users as UsersIcon,
   Share2 as Share2Icon, 
   Star as StarIcon, 
   Trash2 as Trash2Icon, 
@@ -183,6 +210,7 @@ const props = defineProps({
   config: { type: Object, default: () => ({}) },
   stats: { type: Object, default: () => ({}) },
   sharedCount: { type: Number, default: 0 },
+  sharedWithMeCount: { type: Number, default: 0 },
   trashCount: { type: Number, default: 0 }
 })
 
@@ -201,3 +229,9 @@ onMounted(() => {
   initTheme()
 })
 </script>
+
+<style scoped>
+.group:hover .storage-progress-track {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent-color) 60%, black);
+}
+</style>

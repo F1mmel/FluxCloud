@@ -166,8 +166,11 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 
+import { useConfirm } from '../../composables/useConfirm'
+
 const { formatBytes } = useFileHelpers()
 const { success, error } = useToast()
+const { askConfirm } = useConfirm()
 
 const fileContent = ref('')
 const initialContent = ref('')
@@ -308,9 +311,16 @@ const handleGlobalKeydown = (e) => {
   }
 }
 
-const handleCloseAttempt = () => {
+const handleCloseAttempt = async () => {
   if (hasUnsavedChanges.value) {
-    if (confirm('You have unsaved changes in this file. Are you sure you want to discard them and close?')) {
+    const confirmed = await askConfirm({
+      title: 'Discard unsaved changes?',
+      message: `You have unsaved edits in "${props.item?.name}". Are you sure you want to discard them?`,
+      confirmText: 'Discard Changes',
+      type: 'warning',
+      icon: 'alert'
+    })
+    if (confirmed) {
       emit('close')
     }
   } else {

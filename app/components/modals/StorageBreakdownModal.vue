@@ -11,7 +11,7 @@
         <!-- Modal Header -->
         <div class="h-16 px-6 border-b border-[#e2e8f0] dark:border-[#27272a] flex items-center justify-between glass-header shrink-0">
           <div class="flex items-center gap-3">
-            <div class="p-2.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400">
+            <div class="p-2.5 rounded-2xl accent-bg-alpha border border-[var(--accent-color)]/30 accent-text">
               <HardDriveIcon class="w-5 h-5" />
             </div>
             <div>
@@ -127,7 +127,7 @@
                     <div class="flex items-center gap-3 min-w-0">
                       <span class="w-5 text-center font-mono text-[11px] font-bold text-[#94a3b8] dark:text-[#52525b] shrink-0">#{{ idx + 1 }}</span>
                       <div class="p-1.5 rounded-xl bg-black/5 dark:bg-white/10 shrink-0">
-                        <FileIcon class="w-4 h-4 text-indigo-500" />
+                        <FileIcon class="w-4 h-4 accent-text" />
                       </div>
                       <div class="flex flex-col min-w-0">
                         <span class="font-semibold text-[#0f172a] dark:text-[#fafafa] truncate max-w-[220px] sm:max-w-md">{{ file.name }}</span>

@@ -1,11 +1,11 @@
 <template>
   <tr 
     :data-name="item.name"
-    class="file-item-element border-b border-[#e2e8f0] dark:border-[#27272a] last:border-0 hover:bg-[#f1f5f9]/80 dark:hover:bg-[#18181b]/60 transition-colors select-none group cursor-pointer"
+    class="file-item-element border-b border-[#e2e8f0] dark:border-[#27272a] last:border-0 hover:bg-[#f1f5f9]/80 dark:hover:bg-[#18181b]/60 transition-colors select-none group cursor-pointer relative"
     :class="{
-      'border-dashed border-2 accent-border': isDragOver
+      'font-semibold !border-b-transparent': isDragOver
     }"
-    :style="isSelected ? 'background-color: var(--accent-bg-alpha)' : ''"
+    :style="isDragOver ? 'outline: 2px solid var(--accent-color); outline-offset: -2px; background-color: var(--accent-bg-alpha);' : (isSelected ? 'background-color: var(--accent-bg-alpha);' : '')"
     @click="$emit('item-click', item, $event)"
     @mousedown.stop="$emit('item-mousedown', $event, item)"
     @mouseup.stop="$emit('item-mouseup', $event, item)"
@@ -13,6 +13,7 @@
     @contextmenu.prevent="$emit('item-contextmenu', $event, item)"
     draggable="true"
     @dragstart="$emit('item-dragstart', $event, item)"
+    @dragend="$emit('item-dragend', $event, item)"
     @dragover.prevent="$emit('item-dragover', $event, item)"
     @dragleave="$emit('item-dragleave', $event, item)"
     @drop.prevent="$emit('item-drop', $event, item)"
@@ -111,9 +112,19 @@
     <!-- Actions -->
     <td class="py-3 px-4 text-right w-28 align-middle" @click.stop>
       <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        <!-- Quick Extract for ZIP files -->
+        <button 
+          v-if="!item.isDirectory && item.name.toLowerCase().endsWith('.zip')"
+          @click="$emit('item-action', { action: 'extract-zip', item })" 
+          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:accent-text hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 cursor-pointer"
+          title="Extract Here"
+        >
+          <FolderDownIcon class="w-4 h-4" />
+        </button>
+
         <button 
           @click="$emit('item-action', { action: 'open', item })" 
-          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:text-indigo-500 hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95"
+          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:text-indigo-500 hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 cursor-pointer"
           :title="item.isDirectory ? 'Open' : 'Preview'"
         >
           <EyeIcon class="w-4 h-4" />
@@ -121,7 +132,7 @@
 
         <button 
           @click="$emit('item-action', { action: 'share', item })" 
-          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:text-emerald-500 hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95"
+          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:text-emerald-500 hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 cursor-pointer"
           title="Share"
         >
           <Share2Icon class="w-4 h-4" />
@@ -129,7 +140,7 @@
 
         <button 
           @click="$emit('item-action', { action: 'download', item })" 
-          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95"
+          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 cursor-pointer"
           :title="item.isDirectory ? 'Download ZIP' : 'Download'"
         >
           <DownloadIcon class="w-4 h-4" />
@@ -137,7 +148,7 @@
 
         <button 
           @click="$emit('item-contextmenu', $event, item)" 
-          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:text-[#0f172a] dark:hover:text-[#fafafa] hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95"
+          class="p-1.5 rounded-lg text-[#64748b] dark:text-[#cbd5e1] hover:text-[#0f172a] dark:hover:text-[#fafafa] hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 cursor-pointer"
           title="More options"
         >
           <MoreVerticalIcon class="w-4 h-4" />
@@ -160,7 +171,8 @@ import {
   Video as VideoIcon, 
   Music as MusicIcon, 
   FileText as FileTextIcon, 
-  Archive as ArchiveIcon 
+  Archive as ArchiveIcon,
+  FolderDown as FolderDownIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useFavorites } from '../../composables/useFavorites'
@@ -181,6 +193,7 @@ const emit = defineEmits([
   'item-dblclick',
   'item-contextmenu',
   'item-dragstart',
+  'item-dragend',
   'item-dragover',
   'item-dragleave',
   'item-drop',

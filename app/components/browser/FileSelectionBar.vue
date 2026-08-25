@@ -14,10 +14,20 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-2">
+        <!-- In-Place Compress to ZIP on Server -->
+        <button 
+          @click="$emit('compress-selected')" 
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-[#f1f5f9] dark:bg-[#18181b] hover:bg-[#e2e8f0] dark:hover:bg-[#27272a] border border-[#cbd5e1] dark:border-[#3f3f46] text-[#0f172a] dark:text-[#fafafa] rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-sm cursor-pointer"
+          title="Pack selected items into a ZIP archive here on the server"
+        >
+          <PackagePlusIcon class="w-3.5 h-3.5 text-purple-500" />
+          <span>Compress to ZIP</span>
+        </button>
+
         <!-- Download ZIP -->
         <button 
           @click="$emit('download-zip')" 
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-[#f1f5f9] dark:bg-[#18181b] hover:bg-[#e2e8f0] dark:hover:bg-[#27272a] border border-[#cbd5e1] dark:border-[#3f3f46] text-[#0f172a] dark:text-[#fafafa] rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-sm"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-[#f1f5f9] dark:bg-[#18181b] hover:bg-[#e2e8f0] dark:hover:bg-[#27272a] border border-[#cbd5e1] dark:border-[#3f3f46] text-[#0f172a] dark:text-[#fafafa] rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-sm cursor-pointer"
           title="Download selected items as ZIP"
         >
           <ArchiveIcon class="w-3.5 h-3.5 text-indigo-500" />
@@ -27,27 +37,37 @@
         <!-- Move -->
         <button 
           @click="$emit('move-selected')" 
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-[#f1f5f9] dark:bg-[#18181b] hover:bg-[#e2e8f0] dark:hover:bg-[#27272a] border border-[#cbd5e1] dark:border-[#3f3f46] text-[#0f172a] dark:text-[#fafafa] rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-sm"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-[#f1f5f9] dark:bg-[#18181b] hover:bg-[#e2e8f0] dark:hover:bg-[#27272a] border border-[#cbd5e1] dark:border-[#3f3f46] text-[#0f172a] dark:text-[#fafafa] rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-sm cursor-pointer"
           title="Move selected items"
         >
           <FolderInputIcon class="w-3.5 h-3.5 text-amber-500" />
           <span>Move</span>
         </button>
 
-        <!-- Delete Selected -->
+        <!-- Move to Trash -->
         <button 
           @click="$emit('delete-selected')" 
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900/80 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-300 rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-sm"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-[#f1f5f9] dark:bg-[#18181b] hover:bg-[#e2e8f0] dark:hover:bg-[#27272a] border border-[#cbd5e1] dark:border-[#3f3f46] text-[#0f172a] dark:text-[#fafafa] rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-sm cursor-pointer"
           title="Move selected items to Trash"
         >
-          <Trash2Icon class="w-3.5 h-3.5" />
+          <Trash2Icon class="w-3.5 h-3.5 text-[#64748b] dark:text-[#cbd5e1]" />
           <span>Trash</span>
+        </button>
+
+        <!-- Delete Permanently -->
+        <button 
+          @click="$emit('delete-permanent-selected')" 
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900/80 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-300 rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-sm cursor-pointer"
+          title="Delete selected items permanently"
+        >
+          <FlameIcon class="w-3.5 h-3.5" />
+          <span>Delete Permanently</span>
         </button>
 
         <!-- Clear selection -->
         <button 
           @click="$emit('clear-selection')" 
-          class="p-1.5 text-[#94a3b8] dark:text-[#71717a] hover:text-[#0f172a] dark:hover:text-[#fafafa] rounded-lg hover:bg-[#f1f5f9] dark:hover:bg-[#18181b] transition-colors ml-1"
+          class="p-1.5 text-[#94a3b8] dark:text-[#71717a] hover:text-[#0f172a] dark:hover:text-[#fafafa] rounded-lg hover:bg-[#f1f5f9] dark:hover:bg-[#18181b] transition-colors ml-1 cursor-pointer"
           title="Clear Selection"
         >
           <XIcon class="w-4 h-4" />
@@ -59,9 +79,11 @@
 
 <script setup>
 import { 
+  PackagePlus as PackagePlusIcon,
   Archive as ArchiveIcon, 
   FolderInput as FolderInputIcon, 
   Trash2 as Trash2Icon,
+  Flame as FlameIcon,
   X as XIcon
 } from 'lucide-vue-next'
 
@@ -70,9 +92,11 @@ defineProps({
 })
 
 defineEmits([
+  'compress-selected',
   'download-zip', 
   'move-selected', 
   'delete-selected', 
+  'delete-permanent-selected',
   'clear-selection'
 ])
 </script>

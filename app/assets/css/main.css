@@ -1,6 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --app-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --accent-color: #818CF8;
+  --accent-bg-alpha: rgba(129, 140, 248, 0.15);
+}
+
+/* Global Dynamic Font Engine */
+html, body, #__nuxt, div, span, p, h1, h2, h3, h4, h5, h6, a, button, input, select, textarea, label, nav, aside, header, table, tr, th, td {
+  font-family: var(--app-font);
+}
+
+.font-mono, pre, code, kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
 
 /* CSS Variables for Light Mode */
 :root, html.light, body.light {
@@ -31,6 +44,7 @@ html.dark, body.dark {
 body {
   background-color: var(--app-bg);
   color: var(--app-text);
+  font-family: var(--app-font);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -58,7 +72,7 @@ html.dark .text-subtle {
   color: #e2e8f0;
 }
 
-/* Glassmorphism System - Bright Frosted Nextcloud Glass */
+/* Glassmorphism System - Sleek Frosted Dark Charcoal Glass */
 .has-wallpaper {
   background-attachment: fixed;
   background-position: center;
@@ -72,9 +86,9 @@ html.dark .text-subtle {
   -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(108%);
 }
 html.dark .glass-header {
-  background-color: rgba(24, 27, 38, 0.78) !important;
-  backdrop-filter: blur(24px) saturate(180%) brightness(125%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(125%);
+  background-color: rgba(18, 18, 22, 0.78) !important;
+  backdrop-filter: blur(28px) saturate(140%) brightness(110%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%) brightness(110%);
 }
 
 .glass-sidebar {
@@ -83,9 +97,9 @@ html.dark .glass-header {
   -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(108%);
 }
 html.dark .glass-sidebar {
-  background-color: rgba(24, 27, 38, 0.78) !important;
-  backdrop-filter: blur(28px) saturate(180%) brightness(125%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(125%);
+  background-color: rgba(18, 18, 22, 0.78) !important;
+  backdrop-filter: blur(28px) saturate(140%) brightness(110%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%) brightness(110%);
 }
 
 .glass-card {
@@ -94,9 +108,9 @@ html.dark .glass-sidebar {
   -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(108%);
 }
 html.dark .glass-card {
-  background-color: rgba(28, 32, 45, 0.82) !important;
-  backdrop-filter: blur(24px) saturate(180%) brightness(125%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(125%);
+  background-color: rgba(22, 22, 26, 0.75) !important;
+  backdrop-filter: blur(24px) saturate(140%) brightness(110%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%) brightness(110%);
 }
 
 .glass-modal {
@@ -105,9 +119,9 @@ html.dark .glass-card {
   -webkit-backdrop-filter: blur(32px) saturate(190%) brightness(106%);
 }
 html.dark .glass-modal {
-  background-color: rgba(28, 32, 45, 0.88) !important;
-  backdrop-filter: blur(32px) saturate(190%) brightness(125%);
-  -webkit-backdrop-filter: blur(32px) saturate(190%) brightness(125%);
+  background-color: rgba(24, 24, 28, 0.92) !important;
+  backdrop-filter: blur(32px) saturate(140%) brightness(110%);
+  -webkit-backdrop-filter: blur(32px) saturate(140%) brightness(110%);
 }
 
 .glass-dropdown {
@@ -118,9 +132,9 @@ html.dark .glass-modal {
   -moz-osx-font-smoothing: grayscale;
 }
 html.dark .glass-dropdown {
-  background-color: rgba(24, 27, 38, 0.96) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(20, 20, 24, 0.96) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

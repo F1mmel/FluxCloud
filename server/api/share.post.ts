@@ -107,6 +107,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const allowUploads = isDirectory && body?.allowUploads === true
+  const hideContents = isDirectory && body?.hideContents === true
+  const sharedWithUser = typeof body?.sharedWithUser === 'string' && body.sharedWithUser.trim() ? body.sharedWithUser.trim() : null
+  const permission = body?.permission === 'write' ? 'write' : 'read'
 
   const newShare: ShareRecord = {
     id: shareId,
@@ -120,6 +123,9 @@ export default defineEventHandler(async (event) => {
     viewCount: existing ? existing.viewCount : 0,
     viewOnly,
     allowUploads,
+    hideContents,
+    sharedWithUser,
+    permission,
     createdAt: existing ? existing.createdAt : new Date().toISOString(),
     username: username || null
   }
@@ -145,6 +151,9 @@ export default defineEventHandler(async (event) => {
       viewCount: newShare.viewCount,
       viewOnly: newShare.viewOnly,
       allowUploads: newShare.allowUploads,
+      hideContents: newShare.hideContents,
+      sharedWithUser: newShare.sharedWithUser,
+      permission: newShare.permission,
       createdAt: newShare.createdAt,
       shareUrl: `/s/${newShare.id}`
     }

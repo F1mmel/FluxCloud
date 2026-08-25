@@ -20,6 +20,11 @@
         </button>
       </div>
 
+      <!-- Subtle Background Refresh Progress Bar -->
+      <div v-if="loading && files && files.length > 0" class="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden z-40 pointer-events-none">
+        <div class="h-full accent-bg opacity-75 animate-pulse w-full"></div>
+      </div>
+
       <!-- Concave Inner Corner (Exakt gleiche hellere Glas-Farbe wie FileBrowser Table Header) -->
       <div class="absolute top-full left-0 w-5 h-5 pointer-events-none z-30 overflow-hidden">
         <div class="w-full h-full glass-card bg-white/40 dark:bg-white/10 concave-glass-corner"></div>
@@ -35,10 +40,12 @@
         ref="browserContainer"
         class="flex-1 overflow-y-auto p-6 select-none relative"
         @mousedown="handleCanvasMouseDown"
-        @dragenter.prevent="isDraggingUpload = true"
+        @dragenter.prevent="handleCanvasDragEnter"
+        @dragover.prevent="handleCanvasDragOver"
+        @contextmenu="handleCanvasContextMenu"
       >
-        <!-- Loading State -->
-        <div v-if="loading" class="flex flex-col items-center justify-center h-64 text-[#64748b] dark:text-[#71717a] gap-3">
+        <!-- Loading State (Only on initial empty load, never during background refresh!) -->
+        <div v-if="loading && (!files || files.length === 0)" class="flex flex-col items-center justify-center h-64 text-[#64748b] dark:text-[#71717a] gap-3">
           <Loader2Icon class="w-8 h-8 animate-spin accent-text" />
           <span class="text-sm">Loading files...</span>
         </div>
@@ -56,6 +63,7 @@
             @item-dblclick="handleItemDoubleClick"
             @item-contextmenu="handleItemContextMenu"
             @item-dragstart="handleDragStart"
+            @item-dragend="handleDragEnd"
             @item-dragover="handleDragOver"
             @item-dragleave="handleDragLeave"
             @item-drop="handleDropOnItem"
@@ -78,6 +86,7 @@
             @item-dblclick="handleItemDoubleClick"
             @item-contextmenu="handleItemContextMenu"
             @item-dragstart="handleDragStart"
+            @item-dragend="handleDragEnd"
             @item-dragover="handleDragOver"
             @item-dragleave="handleDragLeave"
             @item-drop="handleDropOnItem"
@@ -134,9 +143,11 @@
     <!-- Floating Action Bar for Selected Items -->
     <FileSelectionBar 
       :selected-count="selectedItems.size"
+      @compress-selected="handleCompressSelected"
       @download-zip="handleBatchDownloadZip"
       @move-selected="$emit('open-move-modal', Array.from(selectedItems))"
       @delete-selected="handleBatchDelete"
+      @delete-permanent-selected="handleBatchDeletePermanent"
       @clear-selection="clearSelection"
     />
 
@@ -148,19 +159,28 @@
       @drop="handleUploadFilesDrop"
     />
 
-    <!-- Right-Click Context Menu -->
+    <!-- Right-Click Context Menu (Item) -->
     <FileContextMenu 
       :visible="contextMenu.visible"
       :position="contextMenu.position"
       :item="contextMenu.item"
+      :selected-count="selectedItems.size"
       @close="contextMenu.visible = false"
       @action="handleContextMenuAction"
+    />
+
+    <!-- Right-Click Context Menu (Empty Canvas Background) -->
+    <FileBackgroundContextMenu 
+      :visible="backgroundContextMenu.visible"
+      :position="backgroundContextMenu.position"
+      @close="backgroundContextMenu.visible = false"
+      @action="handleBackgroundAction"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { 
   PanelRightClose as PanelRightCloseIcon, 
   Loader2 as Loader2Icon, 
@@ -171,6 +191,7 @@ import FileBreadcrumbs from './FileBreadcrumbs.vue'
 import FileSelectionBar from './FileSelectionBar.vue'
 import FileSelectionBox from './FileSelectionBox.vue'
 import FileContextMenu from './FileContextMenu.vue'
+import FileBackgroundContextMenu from './FileBackgroundContextMenu.vue'
 import FileDetailsSidebar from './FileDetailsSidebar.vue'
 import FileDropZone from './FileDropZone.vue'
 import FileGrid from './FileGrid.vue'
@@ -204,6 +225,7 @@ const emit = defineEmits([
   'clear-search',
   'upload-files',
   'delete-items',
+  'delete-items-permanent',
   'move-items'
 ])
 
@@ -325,14 +347,20 @@ const handleItemDoubleClick = (item) => {
   }
 }
 
-// Context Menu
+// Context Menus
 const contextMenu = ref({
   visible: false,
   position: { x: 0, y: 0 },
   item: null
 })
 
+const backgroundContextMenu = ref({
+  visible: false,
+  position: { x: 0, y: 0 }
+})
+
 const handleItemContextMenu = (e, item) => {
+  backgroundContextMenu.value.visible = false
   if (!selectedItems.value.has(item.name)) {
     clearSelection()
     selectedItems.value.add(item.name)
@@ -356,6 +384,80 @@ const handleItemContextMenu = (e, item) => {
   }
 }
 
+const handleCanvasContextMenu = (e) => {
+  // If clicked inside an actual file/folder element or interactive button, item context menu handles it
+  const target = e.target
+  if (target && target.closest('.file-item-element')) {
+    return
+  }
+
+  e.preventDefault()
+  contextMenu.value.visible = false
+
+  const menuWidth = 200
+  const menuHeight = 220
+  let x = e.clientX
+  let y = e.clientY
+
+  if (typeof window !== 'undefined') {
+    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10
+    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10
+  }
+
+  backgroundContextMenu.value = {
+    visible: true,
+    position: { x, y }
+  }
+}
+
+const handleBackgroundAction = async (action) => {
+  if (action === 'new-folder') {
+    try {
+      const res = await $fetch('/api/folder', {
+        method: 'POST',
+        body: {
+          path: props.currentPath,
+          name: 'New Folder'
+        }
+      })
+      success('Folder Created', `Created "${res.folderName}"`)
+      emit('refresh')
+      // Auto-trigger inline rename on newly created folder
+      nextTick(() => {
+        renamingItemName.value = res.folderName
+      })
+    } catch (err) {
+      error('Creation Failed', err?.data?.statusMessage || 'Could not create folder')
+    }
+  } else if (action === 'new-file') {
+    try {
+      const res = await $fetch('/api/create-file', {
+        method: 'POST',
+        body: {
+          folder: props.currentPath,
+          name: 'new file.txt'
+        }
+      })
+      success('File Created', `Created "${res.fileName}"`)
+      emit('refresh')
+      // Auto-trigger inline rename on newly created file
+      nextTick(() => {
+        renamingItemName.value = res.fileName
+      })
+    } catch (err) {
+      error('Creation Failed', err?.data?.statusMessage || 'Could not create file')
+    }
+  } else if (action === 'upload-files') {
+    emit('open-upload')
+  } else if (action === 'upload-folder') {
+    emit('open-upload')
+  } else if (action === 'select-all') {
+    props.files.forEach(f => selectedItems.value.add(f.name))
+  } else if (action === 'refresh') {
+    emit('refresh')
+  }
+}
+
 const handleContextMenuAction = ({ action, item }) => {
   handleItemAction({ action, item })
 }
@@ -372,8 +474,61 @@ const handleItemAction = async ({ action, item }) => {
   } else if (action === 'toggle-favorite') {
     toggleFavorite(item)
     emit('toggle-favorite', item)
+  } else if (action === 'compress-zip') {
+    const itemsToCompress = selectedItems.value.size > 0 ? Array.from(selectedItems.value) : [item.name]
+    try {
+      const res = await $fetch('/api/archive-compress', {
+        method: 'POST',
+        body: {
+          folder: props.currentPath,
+          items: itemsToCompress
+        }
+      })
+      success('ZIP Created', `Archive "${res.archiveName}" was created successfully.`)
+      clearSelection()
+      emit('refresh')
+    } catch (err) {
+      error('Compression Failed', err?.data?.statusMessage || 'Could not create ZIP archive')
+    }
+  } else if (action === 'extract-zip') {
+    try {
+      const res = await $fetch('/api/archive-extract', {
+        method: 'POST',
+        body: {
+          folder: props.currentPath,
+          filename: item.name,
+          createSubfolder: false
+        }
+      })
+      success('Extracted', `Archive "${item.name}" extracted here (${res.extractedCount} files).`)
+      emit('refresh')
+    } catch (err) {
+      error('Extraction Failed', err?.data?.statusMessage || 'Could not extract archive')
+    }
+  } else if (action === 'extract-zip-subfolder') {
+    try {
+      const res = await $fetch('/api/archive-extract', {
+        method: 'POST',
+        body: {
+          folder: props.currentPath,
+          filename: item.name,
+          createSubfolder: true
+        }
+      })
+      success('Extracted', `Archive "${item.name}" extracted into folder "${res.targetFolder}" (${res.extractedCount} files).`)
+      emit('refresh')
+    } catch (err) {
+      error('Extraction Failed', err?.data?.statusMessage || 'Could not extract archive')
+    }
   } else if (action === 'download') {
-    if (item.isDirectory) {
+    const isMultiSelected = selectedItems.value.size > 1 && selectedItems.value.has(item.name)
+    if (isMultiSelected) {
+      const paths = Array.from(selectedItems.value).map(n => {
+        const fileObj = props.files.find(f => f.name === n)
+        return fileObj?.relativePath || (props.currentPath ? `${props.currentPath}/${n}` : n)
+      })
+      emit('download-zip', paths, 'fluxcloud_selection')
+    } else if (item.isDirectory) {
       // Download folder as ZIP
       emit('download-zip', [item.relativePath || item.name], item.name)
     } else if (item.url) {
@@ -386,33 +541,104 @@ const handleItemAction = async ({ action, item }) => {
   } else if (action === 'rename') {
     renamingItemName.value = item.name
   } else if (action === 'move') {
-    emit('open-move-modal', [item.relativePath || item.name])
+    const isMultiSelected = selectedItems.value.size > 1 && selectedItems.value.has(item.name)
+    const itemsToMove = isMultiSelected
+      ? Array.from(selectedItems.value).map(n => {
+          const fileObj = props.files.find(f => f.name === n)
+          return fileObj?.relativePath || (props.currentPath ? `${props.currentPath}/${n}` : n)
+        })
+      : [item.relativePath || (props.currentPath ? `${props.currentPath}/${item.name}` : item.name)]
+    emit('open-move-modal', itemsToMove)
   } else if (action === 'delete') {
-    emit('delete-items', [item.relativePath || item.name])
+    const isMultiSelected = selectedItems.value.size > 1 && selectedItems.value.has(item.name)
+    const itemsToDelete = isMultiSelected
+      ? Array.from(selectedItems.value).map(n => {
+          const fileObj = props.files.find(f => f.name === n)
+          return fileObj?.relativePath || (props.currentPath ? `${props.currentPath}/${n}` : n)
+        })
+      : [item.relativePath || (props.currentPath ? `${props.currentPath}/${item.name}` : item.name)]
+    emit('delete-items', itemsToDelete)
+    clearSelection()
+  } else if (action === 'delete-permanent') {
+    const isMultiSelected = selectedItems.value.size > 1 && selectedItems.value.has(item.name)
+    const itemsToDelete = isMultiSelected
+      ? Array.from(selectedItems.value).map(n => {
+          const fileObj = props.files.find(f => f.name === n)
+          return fileObj?.relativePath || (props.currentPath ? `${props.currentPath}/${n}` : n)
+        })
+      : [item.relativePath || (props.currentPath ? `${props.currentPath}/${item.name}` : item.name)]
+    emit('delete-items-permanent', itemsToDelete)
+    clearSelection()
+  }
+}
+
+const handleCompressSelected = async () => {
+  const itemsToCompress = Array.from(selectedItems.value)
+  if (itemsToCompress.length === 0) return
+
+  try {
+    const res = await $fetch('/api/archive-compress', {
+      method: 'POST',
+      body: {
+        folder: props.currentPath,
+        items: itemsToCompress
+      }
+    })
+    success('ZIP Created', `Archive "${res.archiveName}" was created successfully.`)
+    clearSelection()
+    emit('refresh')
+  } catch (err) {
+    error('Compression Failed', err?.data?.statusMessage || 'Could not create ZIP archive')
   }
 }
 
 // Inline Rename Handler (No modal, inline instant save)
 const handleInlineRename = async ({ item, newName }) => {
   renamingItemName.value = null
-  if (!newName || newName.trim() === '' || newName === item.name) return
+  const trimmed = (newName || '').trim()
+  if (!trimmed || trimmed === item.name) return
+
+  const oldName = item.name
+  const oldRelativePath = item.relativePath
+
+  // Optimistic in-memory update for instant feedback without layout shift
+  item.name = trimmed
+  if (item.relativePath) {
+    const parentDir = item.relativePath.includes('/') ? item.relativePath.substring(0, item.relativePath.lastIndexOf('/')) : ''
+    item.relativePath = parentDir ? `${parentDir}/${trimmed}` : trimmed
+  }
+
+  // Update selection set if selected
+  if (selectedItems.value.has(oldName)) {
+    selectedItems.value.delete(oldName)
+    selectedItems.value.add(trimmed)
+  }
 
   try {
     await $fetch('/api/rename', {
       method: 'POST',
       body: {
-        path: item.relativePath || item.name,
-        newName: newName.trim()
+        path: oldRelativePath || oldName,
+        newName: trimmed
       }
     })
-    success('Renamed', `"${item.name}" renamed to "${newName.trim()}"`)
+    success('Renamed', `"${oldName}" renamed to "${trimmed}"`)
     emit('refresh')
   } catch (err) {
+    // Rollback on error
+    item.name = oldName
+    item.relativePath = oldRelativePath
+    if (selectedItems.value.has(trimmed)) {
+      selectedItems.value.delete(trimmed)
+      selectedItems.value.add(oldName)
+    }
     error('Rename failed', err?.data?.statusMessage || 'Could not rename item')
   }
 }
 
-// F2 Keyboard Shortcut for Quick Rename
+// F2 Keyboard Shortcut for Quick Rename and Global Drag Listener
+const isInternalDragging = ref(false)
+
 onMounted(() => {
   const onKeyDown = (e) => {
     // If inside an active input, ignore
@@ -426,14 +652,23 @@ onMounted(() => {
       }
     }
   }
+
+  const onGlobalDragEnd = () => {
+    isInternalDragging.value = false
+    dragOverFolder.value = null
+  }
+
   window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('dragend', onGlobalDragEnd)
   onUnmounted(() => {
     window.removeEventListener('keydown', onKeyDown)
+    window.removeEventListener('dragend', onGlobalDragEnd)
   })
 })
 
-// Drag and drop moving
+// Drag and drop moving (Internal Items)
 const handleDragStart = (e, item) => {
+  isInternalDragging.value = true
   if (!selectedItems.value.has(item.name)) {
     clearSelection()
     selectedItems.value.add(item.name)
@@ -442,21 +677,112 @@ const handleDragStart = (e, item) => {
   const names = Array.from(selectedItems.value)
   const paths = names.map(n => props.currentPath ? `${props.currentPath}/${n}` : n)
 
-  e.dataTransfer.setData('text/plain', JSON.stringify({
+  const dragPayload = {
     sourcePath: props.currentPath,
     names,
     paths
-  }))
+  }
+
+  if (typeof window !== 'undefined') {
+    window.__activeDragData = dragPayload
+  }
+
+  try {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('application/x-fluxcloud-move', 'true')
+    e.dataTransfer.setData('text/plain', JSON.stringify(dragPayload))
+
+    // Create custom multi-file floating drag ghost badge (Dark Gray Frosted Glass)
+    if (e.dataTransfer && e.dataTransfer.setDragImage) {
+      const dragGhost = document.createElement('div')
+      dragGhost.style.position = 'absolute'
+      dragGhost.style.top = '-9999px'
+      dragGhost.style.left = '-9999px'
+      dragGhost.style.padding = '6px 12px'
+      dragGhost.style.borderRadius = '12px'
+      dragGhost.style.background = 'rgba(24, 24, 28, 0.90)'
+      dragGhost.style.backdropFilter = 'blur(20px)'
+      dragGhost.style.webkitBackdropFilter = 'blur(20px)'
+      dragGhost.style.color = '#fafafa'
+      dragGhost.style.fontSize = '12px'
+      dragGhost.style.fontWeight = '600'
+      dragGhost.style.fontFamily = 'inherit'
+      dragGhost.style.display = 'flex'
+      dragGhost.style.alignItems = 'center'
+      dragGhost.style.gap = '6px'
+      dragGhost.style.boxShadow = '0 12px 28px -4px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3)'
+      dragGhost.style.border = '1px solid rgba(255, 255, 255, 0.18)'
+      dragGhost.style.zIndex = '9999'
+      dragGhost.style.pointerEvents = 'none'
+
+      const extraCount = names.length - 1
+      if (extraCount > 0) {
+        dragGhost.innerHTML = `
+          <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</span>
+          <span style="background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.12); padding: 1.5px 6.5px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #ffffff;">+${extraCount}</span>
+        `
+      } else {
+        dragGhost.innerHTML = `
+          <span style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</span>
+        `
+      }
+
+      document.body.appendChild(dragGhost)
+      e.dataTransfer.setDragImage(dragGhost, 16, 16)
+      setTimeout(() => {
+        if (document.body.contains(dragGhost)) {
+          document.body.removeChild(dragGhost)
+        }
+      }, 0)
+    }
+  } catch {}
+}
+
+const handleDragEnd = () => {
+  isInternalDragging.value = false
+  dragOverFolder.value = null
+  if (typeof window !== 'undefined') {
+    window.__activeDragData = null
+  }
+}
+
+const handleCanvasDragEnter = (e) => {
+  if (isInternalDragging.value) return
+  const types = e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : []
+  if (types.includes('application/x-fluxcloud-move')) return
+
+  if (types.includes('Files')) {
+    isDraggingUpload.value = true
+  }
+}
+
+const handleCanvasDragOver = (e) => {
+  if (isInternalDragging.value) return
+  const types = e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : []
+  if (types.includes('application/x-fluxcloud-move')) return
+
+  if (types.includes('Files') && !isDraggingUpload.value) {
+    isDraggingUpload.value = true
+  }
 }
 
 const handleDragOver = (e, item) => {
   if (item.isDirectory && !selectedItems.value.has(item.name)) {
+    if (e?.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move'
+    }
     dragOverFolder.value = item.name
   }
 }
 
-const handleDragLeave = () => {
-  dragOverFolder.value = null
+const handleDragLeave = (e, item) => {
+  if (e?.currentTarget && !e.currentTarget.contains(e.relatedTarget)) {
+    if (item && dragOverFolder.value === item.name) {
+      dragOverFolder.value = null
+    } else if (!item) {
+      dragOverFolder.value = null
+    }
+  }
 }
 
 const handleDropOnItem = (e, targetFolder) => {
@@ -464,9 +790,9 @@ const handleDropOnItem = (e, targetFolder) => {
   if (!targetFolder.isDirectory) return
 
   try {
-    const raw = e.dataTransfer.getData('text/plain')
+    const raw = e.dataTransfer.getData('text/plain') || JSON.stringify(window.__activeDragData || {})
     if (!raw) return
-    const data = JSON.parse(raw)
+    const data = typeof raw === 'string' ? JSON.parse(raw) : raw
     if (!data.names || data.names.length === 0) return
 
     const targetFolderPath = props.currentPath ? `${props.currentPath}/${targetFolder.name}` : targetFolder.name
@@ -482,12 +808,24 @@ const handleDropOnItem = (e, targetFolder) => {
   }
 }
 
-const handleBreadcrumbDrop = (targetPath) => {
+const handleBreadcrumbDrop = (payload) => {
+  const targetPath = typeof payload === 'object' && payload !== null && 'targetPath' in payload ? payload.targetPath : payload
+  const event = typeof payload === 'object' && payload !== null && 'event' in payload ? payload.event : null
+
+  // If dropped into the exact same folder we are already in, do nothing
+  if (targetPath === props.currentPath) return
+
   try {
-    const raw = window.__activeDragData || localStorage.getItem('fc_drag')
-    if (!raw) return
-    const data = typeof raw === 'string' ? JSON.parse(raw) : raw
-    if (!data.names || data.names.length === 0) return
+    let data = null
+    if (event?.dataTransfer) {
+      const raw = event.dataTransfer.getData('text/plain')
+      if (raw) data = JSON.parse(raw)
+    }
+    if (!data && window.__activeDragData) {
+      data = window.__activeDragData
+    }
+
+    if (!data || !data.names || data.names.length === 0) return
 
     emit('move-items', {
       sourcePath: data.sourcePath,
@@ -502,13 +840,28 @@ const handleBreadcrumbDrop = (targetPath) => {
 
 // Batch Actions
 const handleBatchDownloadZip = () => {
-  const paths = Array.from(selectedItems.value).map(n => props.currentPath ? `${props.currentPath}/${n}` : n)
+  const paths = Array.from(selectedItems.value).map(n => {
+    const fileObj = props.files.find(f => f.name === n)
+    return fileObj?.relativePath || (props.currentPath ? `${props.currentPath}/${n}` : n)
+  })
   emit('download-zip', paths, 'fluxcloud_selection')
 }
 
 const handleBatchDelete = () => {
-  const paths = Array.from(selectedItems.value).map(n => props.currentPath ? `${props.currentPath}/${n}` : n)
+  const paths = Array.from(selectedItems.value).map(n => {
+    const fileObj = props.files.find(f => f.name === n)
+    return fileObj?.relativePath || (props.currentPath ? `${props.currentPath}/${n}` : n)
+  })
   emit('delete-items', paths)
+  clearSelection()
+}
+
+const handleBatchDeletePermanent = () => {
+  const paths = Array.from(selectedItems.value).map(n => {
+    const fileObj = props.files.find(f => f.name === n)
+    return fileObj?.relativePath || (props.currentPath ? `${props.currentPath}/${n}` : n)
+  })
+  emit('delete-items-permanent', paths)
   clearSelection()
 }
 

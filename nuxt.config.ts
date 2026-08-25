@@ -12,6 +12,9 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: process.env.NITRO_PRESET || undefined,
-    serveStatic: 'inline'
+    serveStatic: 'inline',
+    experimental: {
+      asyncContext: true
+    }
   }
 })

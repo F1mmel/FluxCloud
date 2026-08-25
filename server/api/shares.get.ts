@@ -63,6 +63,9 @@ export default defineEventHandler((event) => {
       viewCount: s.viewCount,
       viewOnly: s.viewOnly,
       allowUploads: !!s.allowUploads,
+      hideContents: !!s.hideContents,
+      sharedWithUser: s.sharedWithUser || null,
+      permission: s.permission || 'read',
       createdAt: s.createdAt
     }
   })

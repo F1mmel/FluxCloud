@@ -71,6 +71,7 @@ export default defineEventHandler((event) => {
     downloadCount: share.downloadCount,
     viewOnly: share.viewOnly,
     allowUploads: !!share.allowUploads,
+    hideContents: !!share.hideContents,
     createdAt: share.createdAt,
     serverBranding: {
       siteName: config.siteName,

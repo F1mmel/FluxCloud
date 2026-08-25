@@ -128,22 +128,46 @@
             </button>
 
             <a 
-              v-if="!shareData.viewOnly"
+              v-if="!shareData.viewOnly && !shareData.hideContents"
               :href="downloadUrl" 
               class="flex items-center justify-center gap-2 px-6 py-3 accent-bg accent-bg-hover rounded-xl text-sm font-bold text-white transition-all shadow-lg active:scale-95"
             >
               <DownloadIcon class="w-4 h-4" />
               <span>{{ shareData.isDirectory ? 'Download Full ZIP' : 'Download File' }}</span>
             </a>
-            <span v-else class="px-4 py-2 rounded-xl bg-[#f1f5f9] dark:bg-[#18181b] border border-[#e2e8f0] dark:border-[#27272a] text-xs text-[#64748b] dark:text-[#a1a1aa]">
+            <span v-else-if="shareData.viewOnly" class="px-4 py-2 rounded-xl bg-[#f1f5f9] dark:bg-[#18181b] border border-[#e2e8f0] dark:border-[#27272a] text-xs text-[#64748b] dark:text-[#a1a1aa]">
               View Only
             </span>
           </div>
         </div>
 
-        <!-- 1. SHARED FOLDER FILE BROWSER (If Directory) -->
+        <!-- 1A. BLIND FILE DROP VIEW (When hideContents is enabled) -->
         <div 
-          v-if="shareData.isDirectory" 
+          v-if="shareData.isDirectory && shareData.hideContents"
+          class="rounded-3xl border shadow-2xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-2xl mx-auto glass-card border-white/20 dark:border-white/10 bg-white/80 dark:bg-[#18181b]/80 animate-in fade-in zoom-in-95 duration-200"
+        >
+          <div class="p-5 rounded-3xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-500 mb-5 shadow-lg">
+            <UploadCloudIcon class="w-14 h-14" />
+          </div>
+          <h3 class="text-2xl font-bold text-[#0f172a] dark:text-[#fafafa] mb-2">
+            File Drop Box
+          </h3>
+          <p class="text-xs sm:text-sm text-[#64748b] dark:text-[#cbd5e1] mb-8 max-w-md">
+            You can securely upload files directly into <strong>{{ shareData.fileName }}</strong>. Existing files in this folder are kept private.
+          </p>
+
+          <button 
+            @click="showUploadModal = true" 
+            class="px-8 py-3.5 rounded-2xl accent-bg accent-bg-hover text-white font-bold text-sm shadow-xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <UploadCloudIcon class="w-5 h-5" />
+            <span>Select &amp; Upload Files</span>
+          </button>
+        </div>
+
+        <!-- 1B. STANDARD SHARED FOLDER FILE BROWSER (If Directory and not blind drop) -->
+        <div 
+          v-else-if="shareData.isDirectory" 
           class="rounded-2xl border shadow-xl overflow-hidden flex flex-col"
           :class="hasCustomBackground ? 'glass-modal border-white/20 dark:border-white/10' : 'bg-white dark:bg-[#12131a] border-[#e2e8f0] dark:border-[#27272a]'"
         >
@@ -399,6 +423,7 @@ import {
   X as XIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
+import { useToast } from '../../composables/useToast'
 import UploadModal from '../modals/UploadModal.vue'
 
 const props = defineProps({
@@ -406,6 +431,7 @@ const props = defineProps({
 })
 
 const { formatBytes, formatDate, isImage, isVideo, isAudio, isPdf } = useFileHelpers()
+const { success, error } = useToast()
 
 const shareData = ref(null)
 const loading = ref(true)
@@ -519,8 +545,9 @@ const handleGuestUploadFromModal = async (fileList) => {
 
     showUploadModal.value = false
     await loadFolderFiles(currentSubpath.value)
+    success('Upload complete', `Successfully uploaded ${fileList.length} files`)
   } catch (err) {
-    alert(err?.data?.statusMessage || 'Failed to upload files to shared folder')
+    error('Upload failed', err?.data?.statusMessage || 'Failed to upload files to shared folder')
   } finally {
     isUploading.value = false
   }

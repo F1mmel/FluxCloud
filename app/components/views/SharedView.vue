@@ -177,12 +177,14 @@ import {
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
 import { useShares } from '../../composables/useShares'
+import { useConfirm } from '../../composables/useConfirm'
 
-defineEmits(['edit-share'])
+const emit = defineEmits(['edit-share'])
 
 const { formatDate, formatBytes, isVideo, isAudio, isPdf, isCodeOrText, getFileCategory, copyToClipboard } = useFileHelpers()
 const { success, error } = useToast()
 const { unmarkAsShared } = useShares()
+const { askConfirm } = useConfirm()
 
 const shares = ref([])
 const loading = ref(false)
@@ -207,10 +209,18 @@ const copyShareLink = async (shareId) => {
 }
 
 const revokeShare = async (shareId) => {
-  if (!confirm('Are you sure you want to revoke this share link? Visitors will no longer have access.')) return
+  const target = shares.value.find(s => s.id === shareId)
+  const confirmed = await askConfirm({
+    title: 'Revoke Share Link?',
+    message: `Are you sure you want to deactivate the share link for "${target?.fileName || 'this item'}"?\nVisitors will immediately lose access.`,
+    confirmText: 'Revoke Link',
+    type: 'danger',
+    icon: 'trash'
+  })
+  if (!confirmed) return
+
   try {
     await $fetch(`/api/share/${shareId}`, { method: 'DELETE' })
-    const target = shares.value.find(s => s.id === shareId)
     if (target) {
       unmarkAsShared(target.displayPath || target.targetPath, shareId)
     } else {

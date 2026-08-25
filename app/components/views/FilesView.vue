@@ -33,6 +33,7 @@
       @clear-search="$emit('clear-search')"
       @upload-files="(files) => $emit('upload-files', files)"
       @delete-items="(paths) => $emit('delete-items', paths)"
+      @delete-items-permanent="(paths) => $emit('delete-items-permanent', paths)"
       @move-items="(payload) => $emit('move-items', payload)"
       @download-zip="(paths, name) => $emit('download-zip', paths, name)"
     />
@@ -70,6 +71,7 @@ defineEmits([
   'toggle-favorite',
   'upload-files',
   'delete-items',
+  'delete-items-permanent',
   'move-items',
   'download-zip'
 ])

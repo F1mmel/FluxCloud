@@ -194,6 +194,14 @@ export function getUserUploadsDir(username: string): string {
 }
 
 /**
+ * Returns all configured users from config.json
+ */
+export function getUsers(): UserRecord[] {
+  const config = getConfig()
+  return config.users || []
+}
+
+/**
  * Resolves a safe absolute path inside a user's isolated directory
  */
 export function resolveUserUploadPath(username: string, relativePath: string): string {
