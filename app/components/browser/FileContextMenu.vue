@@ -101,6 +101,16 @@
         <span>Edit in Code Editor</span>
       </button>
 
+      <!-- Version History (Files only) -->
+      <button 
+        v-if="selectedCount <= 1 && !item?.isDirectory"
+        @click="emitAction('versions')" 
+        class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-left transition-colors font-medium text-[#0f172a] dark:text-[#fafafa] cursor-pointer"
+      >
+        <HistoryIcon class="w-4 h-4 text-amber-500 shrink-0" />
+        <span>Version History</span>
+      </button>
+
       <button 
         v-if="selectedCount <= 1"
         @click="emitAction('details')" 
@@ -166,7 +176,8 @@ import {
   Flame as FlameIcon,
   FolderDown as FolderDownIcon,
   FolderArchive as FolderArchiveIcon,
-  PackagePlus as PackagePlusIcon
+  PackagePlus as PackagePlusIcon,
+  History as HistoryIcon
 } from 'lucide-vue-next'
 import { useFavorites } from '../../composables/useFavorites'
 import { useFileHelpers } from '../../composables/useFileHelpers'

@@ -3,6 +3,7 @@ import path from 'node:path'
 import { defineEventHandler, readBody, createError } from 'h3'
 import { sanitizeRelativePath } from '../utils/storage'
 import { requireAuth, resolveUserUploadPath } from '../utils/auth'
+import { createFileVersionSnapshot } from '../utils/versions'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -42,6 +43,9 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Cannot write content to a directory'
     })
   }
+
+  // Create version snapshot of current content before overwriting
+  await createFileVersionSnapshot(username, relativePath, 'Saved via Code Editor')
 
   fs.writeFileSync(fullPath, content, 'utf-8')
 

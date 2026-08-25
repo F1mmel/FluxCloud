@@ -81,50 +81,59 @@
         <span class="text-[#94a3b8] dark:text-[#71717a] block mb-0.5">Modified</span>
         <span class="text-[#0f172a] dark:text-[#fafafa]">{{ formatDate(item.modifiedAt) }}</span>
       </div>
-    </div>
-
-    <!-- Direct Secure CDN Link & QR Code -->
-    <div class="border-t border-[#e2e8f0] dark:border-[#27272a] pt-4 mt-4 space-y-3">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-semibold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-1.5">
-          <LinkIcon class="w-3.5 h-3.5 text-indigo-500" />
-          <span>Secure Direct CDN Link</span>
-        </span>
-        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">Unguessable 128-bit</span>
-      </div>
-
-      <div class="flex items-center gap-1.5">
-        <input 
-          type="text" 
-          :value="displayDirectUrl" 
-          readonly 
-          class="flex-1 px-2.5 py-1.5 bg-[#f8fafc] dark:bg-[#18181b] border border-[#e2e8f0] dark:border-[#27272a] rounded-xl text-xs text-[#0f172a] dark:text-[#fafafa] font-mono focus:outline-none"
-        />
-        <button 
-          @click="copyDirectLink" 
-          class="p-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white transition-all shrink-0 active:scale-95 shadow-sm cursor-pointer"
-          title="Copy Secure Direct URL"
-        >
-          <CopyIcon class="w-3.5 h-3.5" />
-        </button>
-      </div>
-
+      <!-- Version History Quick Button -->
       <button 
-        @click="$emit('action', { action: 'direct-link', item })" 
-        class="w-full py-1.5 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+        v-if="!item.isDirectory"
+        @click="$emit('action', { action: 'versions', item })" 
+        class="w-full py-2 px-3 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
       >
-        <LinkIcon class="w-3.5 h-3.5" />
-        <span>Direct &amp; Auto-Download Links...</span>
+        <HistoryIcon class="w-3.5 h-3.5" />
+        <span>View Version History</span>
       </button>
 
-      <!-- QR Code -->
-      <div class="pt-2 flex flex-col items-center justify-center p-3 bg-[#f8fafc] dark:bg-[#18181b] rounded-2xl border border-[#e2e8f0] dark:border-[#27272a]">
-        <img 
-          :src="getQrCodeUrl(displayDirectUrl, 160)" 
-          alt="QR Code" 
-          class="w-28 h-28 rounded-xl bg-white p-1.5 shadow-sm border border-[#e2e8f0] dark:border-transparent"
-        />
-        <span class="text-[10px] text-[#64748b] dark:text-[#71717a] mt-2">Scan to open on mobile</span>
+      <!-- Direct Secure CDN Link & QR Code -->
+      <div class="border-t border-[#e2e8f0] dark:border-[#27272a] pt-4 mt-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-1.5">
+            <LinkIcon class="w-3.5 h-3.5 text-indigo-500" />
+            <span>Secure Direct CDN Link</span>
+          </span>
+          <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">Unguessable 128-bit</span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <input 
+            type="text" 
+            :value="displayDirectUrl" 
+            readonly 
+            class="flex-1 px-2.5 py-1.5 bg-[#f8fafc] dark:bg-[#18181b] border border-[#e2e8f0] dark:border-[#27272a] rounded-xl text-xs text-[#0f172a] dark:text-[#fafafa] font-mono focus:outline-none"
+          />
+          <button 
+            @click="copyDirectLink" 
+            class="p-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white transition-all shrink-0 active:scale-95 shadow-sm cursor-pointer"
+            title="Copy Secure Direct URL"
+          >
+            <CopyIcon class="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <button 
+          @click="$emit('action', { action: 'direct-link', item })" 
+          class="w-full py-1.5 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+        >
+          <LinkIcon class="w-3.5 h-3.5" />
+          <span>Direct &amp; Auto-Download Links...</span>
+        </button>
+
+        <!-- QR Code -->
+        <div class="pt-2 flex flex-col items-center justify-center p-3 bg-[#f8fafc] dark:bg-[#18181b] rounded-2xl border border-[#e2e8f0] dark:border-[#27272a]">
+          <img 
+            :src="getQrCodeUrl(displayDirectUrl, 160)" 
+            alt="QR Code" 
+            class="w-28 h-28 rounded-xl bg-white p-1.5 shadow-sm border border-[#e2e8f0] dark:border-transparent"
+          />
+          <span class="text-[10px] text-[#64748b] dark:text-[#71717a] mt-2">Scan to open on mobile</span>
+        </div>
       </div>
     </div>
   </aside>
@@ -141,7 +150,8 @@ import {
   Share2 as Share2Icon, 
   Download as DownloadIcon, 
   Link as LinkIcon, 
-  Copy as CopyIcon 
+  Copy as CopyIcon,
+  History as HistoryIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'

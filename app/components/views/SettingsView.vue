@@ -549,6 +549,69 @@
                 </div>
               </div>
             </div>
+
+            <!-- 2. File Version Retention & Copies -->
+            <div class="glass-card border border-[#e2e8f0]/80 dark:border-[#27272a]/80 rounded-2xl p-6 space-y-5 shadow-lg">
+              <div class="flex items-center justify-between border-b border-[#e2e8f0]/80 dark:border-[#27272a]/80 pb-3">
+                <h3 class="text-sm font-bold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-2">
+                  <HistoryIcon class="w-4 h-4 text-amber-500" />
+                  <span>File Version Retention & Copies</span>
+                </h3>
+                <span 
+                  class="text-xs font-mono font-bold px-2 py-0.5 rounded-md"
+                  :class="customMaxVersionCopies > 0 ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' : 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30'"
+                >
+                  {{ customMaxVersionCopies === 0 ? 'Versioning Disabled' : `${customMaxVersionCopies} Copies per File` }}
+                </span>
+              </div>
+
+              <p class="text-xs text-[#475569] dark:text-[#e2e8f0] font-normal leading-relaxed">
+                Specify the maximum number of previous version copies to automatically preserve when files are saved in the Code Editor or replaced via upload. Older snapshots exceeding this limit are automatically pruned.
+              </p>
+
+              <!-- Version Copies Slider -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between text-xs text-[#64748b] dark:text-[#cbd5e1]">
+                  <span>0 (Disabled)</span>
+                  <span class="font-bold text-[#0f172a] dark:text-[#fafafa]">
+                    {{ customMaxVersionCopies === 0 ? 'Off (No versions kept)' : `${customMaxVersionCopies} historical versions` }}
+                  </span>
+                  <span>50 Copies</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="50" 
+                  step="1" 
+                  v-model.number="customMaxVersionCopies" 
+                  class="w-full accent-text cursor-pointer"
+                />
+              </div>
+
+              <!-- Quick Presets -->
+              <div class="space-y-1.5 pt-2">
+                <label class="text-[11px] font-semibold text-[#475569] dark:text-[#e2e8f0] block">Quick Presets</label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="preset in [
+                      { label: 'Off', val: 0 },
+                      { label: '5 Copies', val: 5 },
+                      { label: '10 Copies', val: 10 },
+                      { label: '20 Copies (Default)', val: 20 },
+                      { label: '30 Copies', val: 30 },
+                      { label: '50 Copies', val: 50 }
+                    ]"
+                    :key="preset.val"
+                    type="button"
+                    @click="customMaxVersionCopies = preset.val"
+                    class="px-3 py-1.5 rounded-xl border text-xs font-medium transition-all active:scale-95 shadow-xs cursor-pointer"
+                    :class="customMaxVersionCopies === preset.val ? 'accent-bg text-white border-transparent' : 'border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#0f172a] dark:text-[#fafafa] hover:bg-black/5 dark:hover:bg-white/15'"
+                  >
+                    {{ preset.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- TAB 3: API & SYNC -->
@@ -771,7 +834,8 @@ import {
   Cpu as CpuIcon,
   RefreshCw as RefreshCwIcon,
   AlertTriangle as AlertTriangleIcon,
-  CheckCircle2 as CheckCircle2Icon
+  CheckCircle2 as CheckCircle2Icon,
+  History as HistoryIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
@@ -834,6 +898,7 @@ const customApiKey = ref(props.config?.apiKey || '')
 const customCors = ref(props.config?.corsAllowed ?? true)
 const customWebdavEnabled = ref(props.config?.webdavEnabled ?? true)
 const customMaxUploadSizeMB = ref(props.config?.maxUploadSizeMB || 1024)
+const customMaxVersionCopies = ref(props.config?.maxVersionCopies ?? 20)
 const customSharePageBackgroundEnabled = ref(props.config?.sharePageBackgroundEnabled ?? false)
 const customThumbnailsEnabled = ref(props.config?.thumbnailsEnabled ?? true)
 const customThumbnailWorkers = ref(props.config?.thumbnailWorkers || 4)
@@ -885,6 +950,7 @@ const executeAutoSave = async () => {
         apiKey: customApiKey.value,
         corsAllowed: customCors.value,
         maxUploadSizeMB: customMaxUploadSizeMB.value,
+        maxVersionCopies: customMaxVersionCopies.value,
         publicUploadsEnabled: false,
         webdavEnabled: customWebdavEnabled.value,
         webdavUsername: 'admin',
@@ -1049,6 +1115,7 @@ watch(customSiteName, () => triggerAutoSave(false))
 watch(customCors, () => triggerAutoSave(true))
 watch(customWebdavEnabled, () => triggerAutoSave(true))
 watch(customMaxUploadSizeMB, () => triggerAutoSave(false))
+watch(customMaxVersionCopies, () => triggerAutoSave(false))
 watch(backgroundBlur, () => triggerAutoSave(false))
 watch(backgroundBrightness, () => triggerAutoSave(false))
 watch(customSharePageBackgroundEnabled, () => triggerAutoSave(true))
@@ -1064,6 +1131,7 @@ watch(() => props.config, (newVal) => {
     customCors.value = newVal.corsAllowed ?? true
     customWebdavEnabled.value = newVal.webdavEnabled ?? true
     customMaxUploadSizeMB.value = newVal.maxUploadSizeMB || 1024
+    customMaxVersionCopies.value = newVal.maxVersionCopies ?? 20
     customSharePageBackgroundEnabled.value = newVal.sharePageBackgroundEnabled ?? false
     customThumbnailsEnabled.value = newVal.thumbnailsEnabled ?? true
     customThumbnailWorkers.value = newVal.thumbnailWorkers || 4

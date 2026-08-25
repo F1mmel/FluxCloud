@@ -176,6 +176,14 @@
       @close="backgroundContextMenu.visible = false"
       @action="handleBackgroundAction"
     />
+
+    <!-- File Version History Modal -->
+    <FileVersionHistoryModal 
+      :show="showVersionHistoryModal"
+      :item="targetVersionItem"
+      @close="showVersionHistoryModal = false"
+      @restored="emit('refresh')"
+    />
   </div>
 </template>
 
@@ -196,6 +204,7 @@ import FileDetailsSidebar from './FileDetailsSidebar.vue'
 import FileDropZone from './FileDropZone.vue'
 import FileGrid from './FileGrid.vue'
 import FileList from './FileList.vue'
+import FileVersionHistoryModal from '../modals/FileVersionHistoryModal.vue'
 import { useLasso } from '../../composables/useLasso'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useFavorites } from '../../composables/useFavorites'
@@ -247,6 +256,8 @@ watch(() => props.files, (newFiles) => {
 const browserContainer = ref(null)
 const selectedItems = ref(new Set())
 const selectedDetailsItem = ref(null)
+const showVersionHistoryModal = ref(false)
+const targetVersionItem = ref(null)
 const dragOverFolder = ref(null)
 const isDraggingUpload = ref(false)
 const renamingItemName = ref(null)
@@ -536,6 +547,9 @@ const handleItemAction = async ({ action, item }) => {
     }
   } else if (action === 'edit-code') {
     emit('open-editor-modal', item)
+  } else if (action === 'versions') {
+    targetVersionItem.value = item
+    showVersionHistoryModal.value = true
   } else if (action === 'details') {
     selectedDetailsItem.value = item
   } else if (action === 'rename') {

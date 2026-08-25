@@ -38,7 +38,8 @@ export default defineEventHandler(async (event) => {
     backgroundOpacity: typeof body.backgroundBrightness === 'number' ? body.backgroundBrightness : (typeof body.backgroundOpacity === 'number' ? body.backgroundOpacity : 100),
     sharePageBackgroundEnabled: body.sharePageBackgroundEnabled !== undefined ? !!body.sharePageBackgroundEnabled : false,
     thumbnailsEnabled: body.thumbnailsEnabled !== undefined ? !!body.thumbnailsEnabled : true,
-    thumbnailWorkers: typeof body.thumbnailWorkers === 'number' && body.thumbnailWorkers >= 1 ? Math.min(16, body.thumbnailWorkers) : 4
+    thumbnailWorkers: typeof body.thumbnailWorkers === 'number' && body.thumbnailWorkers >= 1 ? Math.min(16, body.thumbnailWorkers) : 4,
+    maxVersionCopies: typeof body.maxVersionCopies === 'number' && body.maxVersionCopies >= 0 ? Math.min(100, body.maxVersionCopies) : 20
   })
 
   return { success: true, config: updatedConfig }

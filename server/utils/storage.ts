@@ -17,10 +17,12 @@ export const UPLOADS_DIR = path.join(DATA_DIR, 'uploads')
 export const TRASH_DIR = path.join(DATA_DIR, 'trash')
 export const THUMBNAILS_DIR = path.join(DATA_DIR, 'thumbnails')
 export const CHUNKS_DIR = path.join(DATA_DIR, 'chunks')
+export const VERSIONS_DIR = path.join(DATA_DIR, 'versions')
 export const CONFIG_PATH = path.join(DATA_DIR, 'config.json')
 export const SHARES_PATH = path.join(DATA_DIR, 'shares.json')
 export const META_PATH = path.join(DATA_DIR, 'meta.json')
 export const TRASH_INDEX_PATH = path.join(DATA_DIR, 'trash_index.json')
+export const VERSIONS_INDEX_PATH = path.join(DATA_DIR, 'versions_index.json')
 
 const DEFAULT_ICON_PATH = path.resolve(ROOT_DIR, 'public/fluxcloud_icon.png')
 const LEGACY_CONFIG_PATH = path.resolve(ROOT_DIR, 'config.json')
@@ -44,6 +46,9 @@ export function ensureDataStructure() {
   }
   if (!fs.existsSync(CHUNKS_DIR)) {
     fs.mkdirSync(CHUNKS_DIR, { recursive: true })
+  }
+  if (!fs.existsSync(VERSIONS_DIR)) {
+    fs.mkdirSync(VERSIONS_DIR, { recursive: true })
   }
 
   // 1. Migrate legacy config.json if needed
@@ -107,6 +112,7 @@ export interface ServerConfig {
   sharePageBackgroundEnabled?: boolean
   thumbnailsEnabled?: boolean
   thumbnailWorkers?: number
+  maxVersionCopies?: number
 }
 
 export function getConfig(): ServerConfig {
@@ -132,7 +138,8 @@ export function getConfig(): ServerConfig {
         backgroundOpacity: typeof parsed.backgroundBrightness === 'number' ? parsed.backgroundBrightness : (typeof parsed.backgroundOpacity === 'number' ? parsed.backgroundOpacity : 100),
         sharePageBackgroundEnabled: parsed.sharePageBackgroundEnabled ?? false,
         thumbnailsEnabled: parsed.thumbnailsEnabled !== undefined ? !!parsed.thumbnailsEnabled : true,
-        thumbnailWorkers: typeof parsed.thumbnailWorkers === 'number' && parsed.thumbnailWorkers >= 1 ? Math.min(16, parsed.thumbnailWorkers) : 4
+        thumbnailWorkers: typeof parsed.thumbnailWorkers === 'number' && parsed.thumbnailWorkers >= 1 ? Math.min(16, parsed.thumbnailWorkers) : 4,
+        maxVersionCopies: typeof parsed.maxVersionCopies === 'number' ? parsed.maxVersionCopies : 20
       }
     } catch (e) {
       console.error('Error reading config:', e)

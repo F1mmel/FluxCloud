@@ -4,6 +4,7 @@ import path from 'node:path'
 import { defineEventHandler, getHeaders, getQuery, createError, readRawBody } from 'h3'
 import { CHUNKS_DIR, sanitizeRelativePath, getMimeType, getShares, resolveShareFullPath } from '../utils/storage'
 import { getAuthenticatedUser, resolveUserUploadPath } from '../utils/auth'
+import { createFileVersionSnapshot } from '../utils/versions'
 
 export default defineEventHandler(async (event) => {
   const headers = getHeaders(event)
@@ -114,6 +115,16 @@ export default defineEventHandler(async (event) => {
   const decodedFileName = decodeURIComponent(rawFileName)
   const safeFileName = path.basename(decodedFileName).replace(/[\\/:\*\?"<>\|]/g, '_')
   const finalFilePath = path.join(targetFolder, safeFileName)
+  const safeRel = sanitizeRelativePath(targetPath ? `${targetPath}/${safeFileName}` : safeFileName)
+
+  // If replacing an existing file, create a version snapshot first
+  if (fs.existsSync(finalFilePath)) {
+    try {
+      await createFileVersionSnapshot(targetUsername, safeRel, 'Replaced via Upload')
+    } catch (e) {
+      console.warn('Could not create version snapshot on upload overwrite:', e)
+    }
+  }
 
   const finalWriteStream = fs.createWriteStream(finalFilePath)
 
@@ -143,7 +154,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const stat = fs.statSync(finalFilePath)
-  const safeRel = sanitizeRelativePath(targetPath ? `${targetPath}/${safeFileName}` : safeFileName)
   const urlPath = `users/${targetUsername}/${safeRel}`
 
   return {

@@ -66,6 +66,16 @@
                 A+
               </button>
             </div>
+            
+            <!-- Version History Button -->
+            <button 
+              @click="showVersionModal = true" 
+              class="p-2 rounded-xl text-xs border border-black/10 dark:border-white/15 text-[#64748b] dark:text-[#cbd5e1] hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              title="View Version History"
+            >
+              <HistoryIcon class="w-3.5 h-3.5 text-amber-500" />
+              <span class="hidden sm:inline text-[11px]">History</span>
+            </button>
 
             <!-- Save Button -->
             <button 
@@ -109,40 +119,48 @@
             </div>
           </div>
 
-          <!-- Main Textarea -->
-          <div class="flex-1 relative h-full overflow-hidden">
+          <!-- Code Editor Textarea -->
+          <div class="flex-1 min-w-0 relative flex flex-col">
             <textarea
               ref="textareaRef"
               v-model="fileContent"
-              class="w-full h-full p-3 font-mono bg-transparent text-[#0f172a] dark:text-[#fafafa] focus:outline-none resize-none overflow-auto select-text leading-normal"
-              :class="{ 'whitespace-pre': !wordWrap, 'whitespace-pre-wrap break-words': wordWrap }"
-              :style="{ fontSize: `${fontSize}px`, lineHeight: '1.5', tabSize: 2 }"
-              spellcheck="false"
-              autocapitalize="off"
-              autocomplete="off"
               @scroll="syncGutterScroll"
-              @keydown="handleTextareaKeydown"
               @input="onContentChange"
               @click="updateCursorInfo"
               @keyup="updateCursorInfo"
+              :wrap="wordWrap ? 'soft' : 'off'"
+              spellcheck="false"
+              class="w-full h-full p-3 bg-transparent border-0 resize-none focus:outline-none font-mono text-sm leading-normal overflow-auto focus:ring-0 placeholder-[#94a3b8] dark:placeholder-[#52525b]"
+              :style="{ fontSize: `${fontSize}px`, lineHeight: '1.5', tabSize: 2 }"
+              placeholder="Empty file..."
+              autocapitalize="off"
+              autocomplete="off"
+              @keydown="handleTextareaKeydown"
             ></textarea>
           </div>
         </div>
 
         <!-- Editor Status Bar -->
-        <div class="h-8 px-4 border-t border-[#e2e8f0] dark:border-[#27272a] bg-black/5 dark:bg-white/5 flex items-center justify-between text-[11px] font-mono text-[#64748b] dark:text-[#cbd5e1] shrink-0">
+        <div class="h-8 px-4 border-t border-[#e2e8f0] dark:border-[#27272a] flex items-center justify-between text-[11px] font-mono text-[#64748b] dark:text-[#cbd5e1] glass-header shrink-0">
           <div class="flex items-center gap-4">
             <span>Ln {{ cursorLine }}, Col {{ cursorCol }}</span>
             <span>{{ totalLinesCount }} lines</span>
-            <span>{{ fileContent.length }} chars</span>
+            <span>{{ fileContent.length }} characters</span>
           </div>
-
           <div class="flex items-center gap-3">
             <span>UTF-8</span>
             <span>{{ formatBytes(fileContent.length) }}</span>
           </div>
         </div>
       </div>
+
+      <!-- Version History Modal Overlay inside Editor -->
+      <FileVersionHistoryModal 
+        :show="showVersionModal" 
+        :item="item" 
+        @close="showVersionModal = false" 
+        @restored="handleVersionRestored" 
+      />
     </div>
   </Transition>
 </template>
@@ -154,10 +172,13 @@ import {
   Save as SaveIcon, 
   X as XIcon, 
   WrapText as WrapTextIcon, 
-  Loader2 as Loader2Icon 
+  Loader2 as Loader2Icon,
+  History as HistoryIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
+import FileVersionHistoryModal from './FileVersionHistoryModal.vue'
+import { useConfirm } from '../../composables/useConfirm'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -165,8 +186,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'saved'])
-
-import { useConfirm } from '../../composables/useConfirm'
 
 const { formatBytes } = useFileHelpers()
 const { success, error } = useToast()
@@ -176,8 +195,15 @@ const fileContent = ref('')
 const initialContent = ref('')
 const isLoading = ref(false)
 const isSaving = ref(false)
+const showVersionModal = ref(false)
 const wordWrap = ref(true)
 const fontSize = ref(13)
+
+const handleVersionRestored = async () => {
+  showVersionModal.value = false
+  await loadFileContent()
+  emit('saved', { item: props.item })
+}
 
 const textareaRef = ref(null)
 const gutterRef = ref(null)
