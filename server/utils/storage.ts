@@ -15,6 +15,7 @@ export const ROOT_DIR = getAppRootDir()
 export const DATA_DIR = path.resolve(ROOT_DIR, 'data')
 export const UPLOADS_DIR = path.join(DATA_DIR, 'uploads')
 export const TRASH_DIR = path.join(DATA_DIR, 'trash')
+export const THUMBNAILS_DIR = path.join(DATA_DIR, 'thumbnails')
 export const CONFIG_PATH = path.join(DATA_DIR, 'config.json')
 export const SHARES_PATH = path.join(DATA_DIR, 'shares.json')
 export const META_PATH = path.join(DATA_DIR, 'meta.json')
@@ -36,6 +37,9 @@ export function ensureDataStructure() {
   }
   if (!fs.existsSync(TRASH_DIR)) {
     fs.mkdirSync(TRASH_DIR, { recursive: true })
+  }
+  if (!fs.existsSync(THUMBNAILS_DIR)) {
+    fs.mkdirSync(THUMBNAILS_DIR, { recursive: true })
   }
 
   // 1. Migrate legacy config.json if needed
@@ -97,6 +101,8 @@ export interface ServerConfig {
   backgroundBrightness?: number
   backgroundOpacity?: number
   sharePageBackgroundEnabled?: boolean
+  thumbnailsEnabled?: boolean
+  thumbnailWorkers?: number
 }
 
 export function getConfig(): ServerConfig {
@@ -120,7 +126,9 @@ export function getConfig(): ServerConfig {
         backgroundBlur: typeof parsed.backgroundBlur === 'number' ? parsed.backgroundBlur : 2,
         backgroundBrightness: typeof parsed.backgroundBrightness === 'number' ? parsed.backgroundBrightness : (typeof parsed.backgroundOpacity === 'number' ? parsed.backgroundOpacity : 100),
         backgroundOpacity: typeof parsed.backgroundBrightness === 'number' ? parsed.backgroundBrightness : (typeof parsed.backgroundOpacity === 'number' ? parsed.backgroundOpacity : 100),
-        sharePageBackgroundEnabled: parsed.sharePageBackgroundEnabled ?? false
+        sharePageBackgroundEnabled: parsed.sharePageBackgroundEnabled ?? false,
+        thumbnailsEnabled: parsed.thumbnailsEnabled !== undefined ? !!parsed.thumbnailsEnabled : true,
+        thumbnailWorkers: typeof parsed.thumbnailWorkers === 'number' && parsed.thumbnailWorkers >= 1 ? Math.min(16, parsed.thumbnailWorkers) : 4
       }
     } catch (e) {
       console.error('Error reading config:', e)
@@ -150,7 +158,9 @@ export function getConfig(): ServerConfig {
     backgroundBlur: 2,
     backgroundBrightness: 100,
     backgroundOpacity: 100,
-    sharePageBackgroundEnabled: false
+    sharePageBackgroundEnabled: false,
+    thumbnailsEnabled: true,
+    thumbnailWorkers: 4
   }
 
   try {
@@ -445,5 +455,86 @@ export function getFileCategory(name: string, isDirectory = false): 'folder' | '
   if (codeExts.includes(ext)) return 'code'
   if (archiveExts.includes(ext)) return 'archive'
   return 'other'
+}
+
+/**
+ * Resolves or computes the thumbnail file location: data/thumbnails/{user}/{id}.webp
+ */
+export function getThumbnailDiskPath(username: string, relativePath: string, mtimeMs: number, size: number): { userDir: string; fullPath: string; thumbId: string } {
+  const safeUser = (username || 'global').trim().replace(/[^a-zA-Z0-9_\-\.]/g, '_')
+  const userDir = path.join(THUMBNAILS_DIR, safeUser)
+  if (!fs.existsSync(userDir)) {
+    fs.mkdirSync(userDir, { recursive: true })
+  }
+  const hash = crypto.createHash('md5').update(`${relativePath}:${mtimeMs}:${size}`).digest('hex')
+  const thumbId = `${hash}.webp`
+  const fullPath = path.join(userDir, thumbId)
+  return { userDir, fullPath, thumbId }
+}
+
+/**
+ * Returns thumbnail cache statistics
+ */
+export function getThumbnailCacheStats(username?: string): { count: number; totalBytes: number } {
+  ensureDataStructure()
+  let count = 0
+  let totalBytes = 0
+
+  const targetDir = username 
+    ? path.join(THUMBNAILS_DIR, username.trim().replace(/[^a-zA-Z0-9_\-\.]/g, '_'))
+    : THUMBNAILS_DIR
+
+  if (!fs.existsSync(targetDir)) return { count: 0, totalBytes: 0 }
+
+  function scan(dir: string) {
+    try {
+      const items = fs.readdirSync(dir, { withFileTypes: true })
+      for (const item of items) {
+        const full = path.join(dir, item.name)
+        if (item.isDirectory()) {
+          scan(full)
+        } else if (item.isFile()) {
+          count++
+          try {
+            const stat = fs.statSync(full)
+            totalBytes += stat.size
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  scan(targetDir)
+  return { count, totalBytes }
+}
+
+/**
+ * Purges the thumbnail cache
+ */
+export function clearThumbnailCache(username?: string): { clearedCount: number; freedBytes: number } {
+  ensureDataStructure()
+  const stats = getThumbnailCacheStats(username)
+  
+  if (username) {
+    const userDir = path.join(THUMBNAILS_DIR, username.trim().replace(/[^a-zA-Z0-9_\-\.]/g, '_'))
+    if (fs.existsSync(userDir)) {
+      try {
+        fs.rmSync(userDir, { recursive: true, force: true })
+      } catch (e) {
+        console.error('Error clearing user thumbnail cache:', e)
+      }
+    }
+  } else {
+    if (fs.existsSync(THUMBNAILS_DIR)) {
+      try {
+        fs.rmSync(THUMBNAILS_DIR, { recursive: true, force: true })
+        fs.mkdirSync(THUMBNAILS_DIR, { recursive: true })
+      } catch (e) {
+        console.error('Error clearing thumbnail cache:', e)
+      }
+    }
+  }
+
+  return { clearedCount: stats.count, freedBytes: stats.totalBytes }
 }
 

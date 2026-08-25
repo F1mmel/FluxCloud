@@ -55,15 +55,21 @@
             </button>
 
             <!-- Thumbnail or Icon -->
-            <div class="w-full h-24 my-2 flex items-center justify-center overflow-hidden rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10">
-              <img 
-                v-if="isImage(item.name) && item.url" 
-                :src="item.url" 
-                :alt="item.name" 
-                class="h-full w-full object-cover rounded-xl transition-transform duration-200 group-hover:scale-105"
-              />
-              <div v-else class="p-3 transition-transform duration-200 group-hover:scale-110">
+            <div class="w-full h-24 my-2 flex items-center justify-center overflow-hidden rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 relative">
+              <template v-if="(isImage(item.name) || isVideo(item.name)) && (item.thumbnailUrl || (isImage(item.name) && item.url))">
+                <img 
+                  :src="item.thumbnailUrl || item.url" 
+                  :alt="item.name" 
+                  loading="lazy"
+                  class="h-full w-full object-cover rounded-xl transition-transform duration-200 group-hover:scale-105"
+                />
+                <div v-if="isVideo(item.name)" class="absolute bottom-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white backdrop-blur-md shadow-sm flex items-center justify-center pointer-events-none">
+                  <PlayIcon class="w-3 h-3 fill-white text-white" />
+                </div>
+              </template>
+              <div v-else class="p-3 transition-transform duration-200 group-hover:scale-110 flex items-center justify-center">
                 <FolderIcon v-if="item.isDirectory" class="w-12 h-12 accent-text folder-item-icon" :style="'fill: var(--accent-color); fill-opacity: 0.12'" />
+                <VideoIcon v-else-if="isVideo(item.name)" class="w-12 h-12 text-slate-700 dark:text-white file-item-icon" />
                 <FileIcon v-else class="w-12 h-12 text-slate-700 dark:text-white file-item-icon" />
               </div>
             </div>
@@ -93,14 +99,16 @@ import {
   Folder as FolderIcon, 
   File as FileIcon, 
   RefreshCw as RefreshCwIcon, 
-  Loader2 as Loader2Icon 
+  Loader2 as Loader2Icon,
+  Video as VideoIcon,
+  Play as PlayIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
 
 const emit = defineEmits(['navigate-to-folder', 'open-preview'])
 
-const { formatBytes, isImage } = useFileHelpers()
+const { formatBytes, isImage, isVideo } = useFileHelpers()
 const { success } = useToast()
 
 const favorites = ref([])

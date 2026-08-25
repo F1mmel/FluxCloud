@@ -11,6 +11,7 @@ import {
   createError 
 } from 'h3'
 import { resolveUploadPath, getMimeType, getConfig } from '../../utils/storage'
+import { getAuthenticatedUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const method = event.method.toUpperCase()
@@ -47,6 +48,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const query = getQuery(event)
+  const clientKey = (getHeader(event, 'x-api-key') as string) || (query.key as string) || ''
+  const user = getAuthenticatedUser(event)
+
+  if (!user && (!clientKey || clientKey !== config.apiKey)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Direct plaintext filename access is blocked for security. Please use a secure direct token (/d/...) or share link (/s/...).'
+    })
+  }
+
   const filePath = resolveUploadPath(relativePath)
 
   if (!fs.existsSync(filePath)) {
@@ -66,7 +78,6 @@ export default defineEventHandler(async (event) => {
 
   const mimeType = getMimeType(filePath)
   const fileName = path.basename(filePath)
-  const query = getQuery(event)
   const isDownload = query.download === '1' || query.download === 'true'
 
   const headers: Record<string, string> = {

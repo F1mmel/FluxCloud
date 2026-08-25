@@ -6,7 +6,8 @@ import {
   saveMetadata, 
   sanitizeRelativePath, 
   resolveUploadPath, 
-  getMimeType 
+  getMimeType,
+  getFileCategory
 } from '../utils/storage'
 import { getAuthenticatedUser, resolveUserUploadPath } from '../utils/auth'
 
@@ -47,6 +48,8 @@ export default defineEventHandler(async (event) => {
         const stat = fs.statSync(fullPath)
         const isDirectory = stat.isDirectory()
         const ext = isDirectory ? '' : path.extname(relPath).toLowerCase()
+        const category = getFileCategory(path.basename(relPath), isDirectory)
+        const hasThumbnail = !isDirectory && (category === 'image' || category === 'video')
 
         results.push({
           name: path.basename(relPath),
@@ -56,6 +59,7 @@ export default defineEventHandler(async (event) => {
           createdAt: stat.birthtime.toISOString(),
           modifiedAt: stat.mtime.toISOString(),
           url: isDirectory ? null : `/uploads/${encodeURI(urlPath)}`,
+          thumbnailUrl: hasThumbnail ? `/api/thumbnail?path=${encodeURIComponent(urlPath)}` : null,
           mimeType: isDirectory ? 'directory' : getMimeType(relPath),
           extension: ext,
           isFavorite: true

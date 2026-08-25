@@ -53,14 +53,23 @@
     </div>
 
     <!-- Thumbnail or Icon: Perfectly Centered -->
-    <div class="w-full h-24 my-2 flex items-center justify-center overflow-hidden rounded-xl bg-white/60 dark:bg-white/10 border border-black/5 dark:border-white/10">
-      <img 
-        v-if="isImage(item.name) && item.url" 
-        :src="item.url" 
-        :alt="item.name" 
-        loading="lazy"
-        class="h-full w-full object-cover rounded-xl transition-transform duration-200 group-hover:scale-105"
-      />
+    <div class="w-full h-24 my-2 flex items-center justify-center overflow-hidden rounded-xl bg-white/60 dark:bg-white/10 border border-black/5 dark:border-white/10 relative">
+      <!-- Media Thumbnail (Images & Videos) -->
+      <template v-if="(isImage(item.name) || isVideo(item.name)) && (item.thumbnailUrl || (isImage(item.name) && item.url)) && !thumbLoadError">
+        <img 
+          :src="item.thumbnailUrl || item.url" 
+          :alt="item.name" 
+          loading="lazy"
+          @error="thumbLoadError = true"
+          class="h-full w-full object-cover rounded-xl transition-transform duration-200 group-hover:scale-105"
+        />
+        <!-- Video Indicator Badge on Thumbnail -->
+        <div v-if="isVideo(item.name)" class="absolute bottom-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white backdrop-blur-md shadow-sm flex items-center justify-center pointer-events-none">
+          <PlayIcon class="w-3 h-3 fill-white text-white" />
+        </div>
+      </template>
+
+      <!-- Standard Icon Fallback -->
       <div v-else class="p-3 transition-transform duration-200 group-hover:scale-110 flex items-center justify-center">
         <FolderIcon v-if="item.isDirectory" class="w-12 h-12 accent-text folder-item-icon" :style="'fill: var(--accent-color); fill-opacity: 0.12'" />
         <VideoIcon v-else-if="isVideo(item.name)" class="w-12 h-12 text-slate-700 dark:text-white file-item-icon" />
@@ -118,7 +127,8 @@ import {
   Video as VideoIcon, 
   Music as MusicIcon, 
   FileText as FileTextIcon, 
-  Archive as ArchiveIcon 
+  Archive as ArchiveIcon,
+  Play as PlayIcon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useFavorites } from '../../composables/useFavorites'
@@ -153,6 +163,11 @@ const { formatBytes, isImage, isVideo, isAudio, isPdf, isCodeOrText, getFileCate
 const { isFavorite, toggleFavorite } = useFavorites()
 const { isShared } = useShares()
 const isFav = computed(() => isFavorite(props.item))
+const thumbLoadError = ref(false)
+
+watch(() => props.item?.url || props.item?.thumbnailUrl, () => {
+  thumbLoadError.value = false
+})
 
 const onToggleFavorite = () => {
   toggleFavorite(props.item)

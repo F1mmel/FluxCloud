@@ -17,8 +17,8 @@
     <!-- Preview / Icon Box -->
     <div class="my-5 flex flex-col items-center justify-center p-6 rounded-2xl bg-[#f8fafc] dark:bg-[#18181b]/60 border border-[#e2e8f0] dark:border-[#27272a]">
       <img 
-        v-if="isImage(item.name) && (secureDirectUrl || item.url)" 
-        :src="secureDirectUrl || item.url" 
+        v-if="(isImage(item.name) || isVideo(item.name)) && (item.thumbnailUrl || secureDirectUrl || item.url)" 
+        :src="item.thumbnailUrl || secureDirectUrl || item.url" 
         :alt="item.name" 
         class="max-h-36 max-w-full rounded-xl object-contain shadow-md"
       />
@@ -152,7 +152,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'action'])
 
-const { formatBytes, formatDate, isImage, copyToClipboard, getQrCodeUrl } = useFileHelpers()
+const { formatBytes, formatDate, isImage, isVideo, copyToClipboard, getQrCodeUrl } = useFileHelpers()
 const { success } = useToast()
 
 const secureDirectUrl = ref('')

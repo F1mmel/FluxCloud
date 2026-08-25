@@ -38,7 +38,16 @@
     <!-- Name & Icon: Perfectly Centered Vertically -->
     <td class="py-3 px-4 align-middle font-medium">
       <div class="flex items-center gap-3 min-w-0 py-0.5">
-        <FolderIcon v-if="item.isDirectory" class="w-5 h-5 accent-text shrink-0 folder-item-icon" :style="'fill: var(--accent-color); fill-opacity: 0.15'" />
+        <div v-if="(isImage(item.name) || isVideo(item.name)) && (item.thumbnailUrl || (isImage(item.name) && item.url)) && !thumbLoadError" class="w-6 h-6 rounded-md overflow-hidden shrink-0 border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center justify-center relative shadow-xs">
+          <img 
+            :src="item.thumbnailUrl || item.url" 
+            :alt="item.name" 
+            loading="lazy" 
+            @error="thumbLoadError = true"
+            class="w-full h-full object-cover" 
+          />
+        </div>
+        <FolderIcon v-else-if="item.isDirectory" class="w-5 h-5 accent-text shrink-0 folder-item-icon" :style="'fill: var(--accent-color); fill-opacity: 0.15'" />
         <VideoIcon v-else-if="isVideo(item.name)" class="w-5 h-5 text-slate-700 dark:text-white shrink-0 file-item-icon" />
         <MusicIcon v-else-if="isAudio(item.name)" class="w-5 h-5 text-slate-700 dark:text-white shrink-0 file-item-icon" />
         <FileTextIcon v-else-if="isPdf(item.name) || isCodeOrText(item.name)" class="w-5 h-5 text-slate-700 dark:text-white shrink-0 file-item-icon" />
@@ -182,10 +191,15 @@ const emit = defineEmits([
   'cancel-rename'
 ])
 
-const { formatBytes, formatDate, isVideo, isAudio, isPdf, isCodeOrText, getFileCategory } = useFileHelpers()
+const { formatBytes, formatDate, isImage, isVideo, isAudio, isPdf, isCodeOrText, getFileCategory } = useFileHelpers()
 const { isFavorite, toggleFavorite } = useFavorites()
 const { isShared } = useShares()
 const isFav = computed(() => isFavorite(props.item))
+const thumbLoadError = ref(false)
+
+watch(() => props.item?.url || props.item?.thumbnailUrl, () => {
+  thumbLoadError.value = false
+})
 
 const onToggleFavorite = () => {
   toggleFavorite(props.item)

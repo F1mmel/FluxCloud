@@ -12,6 +12,7 @@ export interface FileItemInfo {
   createdAt: string
   modifiedAt: string
   url: string | null
+  thumbnailUrl: string | null
   mimeType: string
   extension: string
   isFavorite: boolean
@@ -118,6 +119,7 @@ export default defineEventHandler(async (event) => {
           }
 
           const urlPath = `users/${user.username}/${relativeToRoot}`
+          const hasThumbnail = !isDirectory && (itemCat === 'image' || itemCat === 'video')
 
           allEntries.push({
             name: entry.name,
@@ -127,6 +129,7 @@ export default defineEventHandler(async (event) => {
             createdAt: stats.birthtime.toISOString(),
             modifiedAt: stats.mtime.toISOString(),
             url: isDirectory ? null : `/uploads/${encodeURI(urlPath)}`,
+            thumbnailUrl: hasThumbnail ? `/api/thumbnail?path=${encodeURIComponent(urlPath)}` : null,
             mimeType: isDirectory ? 'directory' : getMimeType(entry.name),
             extension: ext,
             isFavorite: favoriteSet.has(relativeToRoot),
@@ -172,6 +175,7 @@ export default defineEventHandler(async (event) => {
             }
             
             const urlPath = `users/${user.username}/${relativeToRoot}`
+            const hasThumbnail = !isDirectory && (itemCat === 'image' || itemCat === 'video')
 
             return {
               name: entry.name,
@@ -181,6 +185,7 @@ export default defineEventHandler(async (event) => {
               createdAt: stats.birthtime.toISOString(),
               modifiedAt: stats.mtime.toISOString(),
               url: isDirectory ? null : `/uploads/${encodeURI(urlPath)}`,
+              thumbnailUrl: hasThumbnail ? `/api/thumbnail?path=${encodeURIComponent(urlPath)}` : null,
               mimeType: isDirectory ? 'directory' : getMimeType(entry.name),
               extension: ext,
               isFavorite: favoriteSet.has(relativeToRoot),

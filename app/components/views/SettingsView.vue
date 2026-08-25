@@ -299,7 +299,199 @@
             </div>
           </div>
 
-          <!-- TAB 2: UPLOADS -->
+          <!-- TAB 2: THUMBNAILS -->
+          <div v-else-if="activeTab === 'thumbnails'" key="tab-thumbnails" class="space-y-6">
+            <!-- 1. Enable / Disable Thumbnail Generation -->
+            <div class="glass-card border border-[#e2e8f0]/80 dark:border-[#27272a]/80 rounded-2xl p-6 space-y-5 shadow-lg">
+              <div class="flex items-center justify-between border-b border-[#e2e8f0]/80 dark:border-[#27272a]/80 pb-3">
+                <h3 class="text-sm font-bold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-2">
+                  <FilmIcon class="w-4 h-4 text-indigo-500" />
+                  <span>Automatic Media Thumbnails</span>
+                </h3>
+                <span 
+                  class="text-xs font-semibold px-2 py-0.5 rounded-md"
+                  :class="customThumbnailsEnabled ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30'"
+                >
+                  {{ customThumbnailsEnabled ? 'Enabled' : 'Disabled' }}
+                </span>
+              </div>
+
+              <div class="flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                  <label class="text-xs font-semibold text-[#0f172a] dark:text-[#fafafa] block">Enable Image & Video Thumbnail Generation</label>
+                  <p class="text-xs text-[#475569] dark:text-[#cbd5e1] leading-relaxed">
+                    When browsing files in grid or list view, FluxCloud automatically generates lightweight, optimized WebP previews for images and videos as they scroll into view.
+                  </p>
+                </div>
+                <AppCheckbox 
+                  :model-value="customThumbnailsEnabled" 
+                  @update:model-value="(val) => { customThumbnailsEnabled = val; triggerAutoSave(true) }" 
+                />
+              </div>
+            </div>
+
+            <!-- 2. Worker Threads / Concurrency -->
+            <div class="glass-card border border-[#e2e8f0]/80 dark:border-[#27272a]/80 rounded-2xl p-6 space-y-5 shadow-lg">
+              <div class="flex items-center justify-between border-b border-[#e2e8f0]/80 dark:border-[#27272a]/80 pb-3">
+                <h3 class="text-sm font-bold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-2">
+                  <CpuIcon class="w-4 h-4 text-indigo-500" />
+                  <span>Worker Threads & Concurrency</span>
+                </h3>
+                <span class="text-xs font-mono font-bold accent-text">{{ customThumbnailWorkers }} {{ customThumbnailWorkers === 1 ? 'Worker' : 'Workers' }}</span>
+              </div>
+
+              <p class="text-xs text-[#475569] dark:text-[#e2e8f0] font-normal leading-relaxed">
+                Control how many thumbnail generation processes can run simultaneously in the background. Lower values save CPU on smaller servers, while higher values generate previews faster.
+              </p>
+
+              <!-- Workers Range Slider -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between text-xs text-[#64748b] dark:text-[#cbd5e1]">
+                  <span>1 Worker (Low CPU)</span>
+                  <span class="font-bold text-[#0f172a] dark:text-[#fafafa]">{{ customThumbnailWorkers }} Threads</span>
+                  <span>16 Workers (Maximum)</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="16" 
+                  step="1" 
+                  v-model.number="customThumbnailWorkers" 
+                  class="w-full accent-text cursor-pointer"
+                />
+              </div>
+
+              <!-- Worker Presets -->
+              <div class="space-y-1.5 pt-2">
+                <label class="text-[11px] font-semibold text-[#475569] dark:text-[#e2e8f0] block">Recommended Presets</label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="preset in [
+                      { label: '1 Worker (Eco / NAS)', val: 1 },
+                      { label: '2 Workers', val: 2 },
+                      { label: '4 Workers (Recommended)', val: 4 },
+                      { label: '8 Workers (Multi-core)', val: 8 },
+                      { label: '16 Workers (High Performance)', val: 16 }
+                    ]"
+                    :key="preset.val"
+                    type="button"
+                    @click="customThumbnailWorkers = preset.val; triggerAutoSave(true)"
+                    class="px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer"
+                    :class="customThumbnailWorkers === preset.val ? 'accent-bg text-white border-transparent shadow-xs' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-indigo-400 text-[#0f172a] dark:text-[#cbd5e1]'"
+                  >
+                    {{ preset.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. FFmpeg System Requirement & Live Status -->
+            <div class="glass-card border border-[#e2e8f0]/80 dark:border-[#27272a]/80 rounded-2xl p-6 space-y-5 shadow-lg">
+              <div class="flex items-center justify-between border-b border-[#e2e8f0]/80 dark:border-[#27272a]/80 pb-3">
+                <h3 class="text-sm font-bold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-2">
+                  <component :is="ffmpegStatus?.available ? CheckCircle2Icon : AlertTriangleIcon" class="w-4 h-4" :class="ffmpegStatus?.available ? 'text-emerald-500' : 'text-amber-500'" />
+                  <span>FFmpeg System Dependency</span>
+                </h3>
+                <div class="flex items-center gap-2">
+                  <span 
+                    class="text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5"
+                    :class="ffmpegStatus?.available ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'"
+                  >
+                    <span class="w-2 h-2 rounded-full" :class="ffmpegStatus?.available ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'"></span>
+                    <span>{{ ffmpegStatus?.available ? `Installed (${ffmpegStatus.version})` : 'Not Found on Host' }}</span>
+                  </span>
+                  <button 
+                    @click="loadFfmpegStatus" 
+                    :disabled="isCheckingFfmpeg" 
+                    class="p-1.5 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-[#64748b] dark:text-[#cbd5e1] active:scale-95 disabled:opacity-50 cursor-pointer"
+                    title="Re-check FFmpeg availability"
+                  >
+                    <RefreshCwIcon class="w-3.5 h-3.5" :class="{ 'animate-spin': isCheckingFfmpeg }" />
+                  </button>
+                </div>
+              </div>
+
+              <p class="text-xs text-[#475569] dark:text-[#e2e8f0] font-normal leading-relaxed">
+                FFmpeg is required for extracting high-performance video preview frames and converting media into compressed WebP thumbnails.
+              </p>
+
+              <!-- Notice / Installation Box -->
+              <div 
+                class="p-4 rounded-xl border text-xs space-y-3"
+                :class="ffmpegStatus?.available ? 'bg-emerald-500/5 border-emerald-500/20 text-[#0f172a] dark:text-[#fafafa]' : 'bg-amber-500/10 border-amber-500/30 text-[#0f172a] dark:text-[#fafafa]'"
+              >
+                <div class="flex items-start gap-2.5">
+                  <component :is="ffmpegStatus?.available ? CheckCircle2Icon : AlertTriangleIcon" class="w-4 h-4 shrink-0 mt-0.5" :class="ffmpegStatus?.available ? 'text-emerald-500' : 'text-amber-500'" />
+                  <div class="space-y-1">
+                    <p class="font-bold text-xs" :class="ffmpegStatus?.available ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'">
+                      {{ ffmpegStatus?.available ? 'FFmpeg is ready and operational.' : 'FFmpeg is not installed or not in system PATH.' }}
+                    </p>
+                    <p class="text-[11px] text-[#475569] dark:text-[#cbd5e1] leading-relaxed">
+                      {{ ffmpegStatus?.available ? 'Video frames and image thumbnails are actively generated on the fly.' : 'Please install FFmpeg on the server host so video and image thumbnails can be rendered:' }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Copyable Install Commands -->
+                <div v-if="!ffmpegStatus?.available" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <!-- Windows -->
+                  <div class="p-2.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 space-y-1.5">
+                    <span class="text-[11px] font-semibold text-[#0f172a] dark:text-white block">Windows (Winget)</span>
+                    <div class="flex items-center justify-between gap-2 bg-black/10 dark:bg-black/30 px-2 py-1 rounded font-mono text-[10px]">
+                      <span class="truncate select-all">winget install Gyan.FFmpeg</span>
+                      <button @click="copyText('winget install Gyan.FFmpeg')" class="text-indigo-500 hover:text-indigo-400 shrink-0 cursor-pointer">
+                        <CopyIcon class="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Linux / Ubuntu / Debian -->
+                  <div class="p-2.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 space-y-1.5">
+                    <span class="text-[11px] font-semibold text-[#0f172a] dark:text-white block">Linux (Ubuntu / Debian)</span>
+                    <div class="flex items-center justify-between gap-2 bg-black/10 dark:bg-black/30 px-2 py-1 rounded font-mono text-[10px]">
+                      <span class="truncate select-all">sudo apt install ffmpeg</span>
+                      <button @click="copyText('sudo apt install ffmpeg')" class="text-indigo-500 hover:text-indigo-400 shrink-0 cursor-pointer">
+                        <CopyIcon class="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Thumbnail Storage & Cache Management -->
+            <div class="glass-card border border-[#e2e8f0]/80 dark:border-[#27272a]/80 rounded-2xl p-6 space-y-5 shadow-lg">
+              <div class="flex items-center justify-between border-b border-[#e2e8f0]/80 dark:border-[#27272a]/80 pb-3">
+                <h3 class="text-sm font-bold text-[#0f172a] dark:text-[#fafafa] flex items-center gap-2">
+                  <Trash2Icon class="w-4 h-4 text-indigo-500" />
+                  <span>Thumbnail Cache & Storage</span>
+                </h3>
+                <span class="text-xs font-mono font-bold text-[#64748b] dark:text-[#cbd5e1]">
+                  {{ thumbStats.count }} {{ thumbStats.count === 1 ? 'file' : 'files' }} ({{ formatBytes(thumbStats.totalBytes) }})
+                </span>
+              </div>
+
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1 max-w-xl">
+                  <label class="text-xs font-semibold text-[#0f172a] dark:text-[#fafafa] block">Stored in <code class="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 font-mono text-[11px]">data/thumbnails/{user}/</code></label>
+                  <p class="text-xs text-[#475569] dark:text-[#cbd5e1] leading-relaxed">
+                    Thumbnails are safely stored and cached. You can clear the cache at any time; thumbnails will be automatically regenerated as files are viewed.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  @click="handleClearThumbnails"
+                  :disabled="isClearingThumbnails || thumbStats.count === 0"
+                  class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center gap-1.5 justify-center cursor-pointer"
+                >
+                  <Trash2Icon class="w-3.5 h-3.5" />
+                  <span>{{ isClearingThumbnails ? 'Clearing...' : 'Clear Thumbnail Cache' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: UPLOADS -->
           <div v-else-if="activeTab === 'uploads'" key="tab-uploads" class="space-y-6">
             <!-- 1. Max Upload Size Configuration -->
             <div class="glass-card border border-[#e2e8f0]/80 dark:border-[#27272a]/80 rounded-2xl p-6 space-y-5 shadow-lg">
@@ -574,7 +766,12 @@ import {
   Check as CheckIcon,
   Upload as UploadIcon,
   UploadCloud as UploadCloudIcon,
-  Palette as PaletteIcon
+  Palette as PaletteIcon,
+  Film as FilmIcon,
+  Cpu as CpuIcon,
+  RefreshCw as RefreshCwIcon,
+  AlertTriangle as AlertTriangleIcon,
+  CheckCircle2 as CheckCircle2Icon
 } from 'lucide-vue-next'
 import { useFileHelpers } from '../../composables/useFileHelpers'
 import { useToast } from '../../composables/useToast'
@@ -612,6 +809,7 @@ const activeTab = ref('customization')
 const availableTabs = computed(() => {
   const tabs = [
     { id: 'customization', label: 'Customization', icon: PaletteIcon },
+    { id: 'thumbnails', label: 'Thumbnails', icon: FilmIcon },
     { id: 'uploads', label: 'Uploads', icon: UploadCloudIcon },
     { id: 'api', label: 'API & Sync', icon: KeyIcon },
     { id: 'webdav', label: 'WebDAV', icon: HardDriveIcon }
@@ -635,9 +833,17 @@ const customCors = ref(props.config?.corsAllowed ?? true)
 const customWebdavEnabled = ref(props.config?.webdavEnabled ?? true)
 const customMaxUploadSizeMB = ref(props.config?.maxUploadSizeMB || 1024)
 const customSharePageBackgroundEnabled = ref(props.config?.sharePageBackgroundEnabled ?? false)
+const customThumbnailsEnabled = ref(props.config?.thumbnailsEnabled ?? true)
+const customThumbnailWorkers = ref(props.config?.thumbnailWorkers || 4)
 const customUrlInput = ref('')
 let autoSaveTimer = null
 let isInitialized = false
+
+// FFmpeg & Thumbnail Cache State
+const ffmpegStatus = ref(null)
+const isCheckingFfmpeg = ref(false)
+const thumbStats = ref({ count: 0, totalBytes: 0 })
+const isClearingThumbnails = ref(false)
 
 // Admin User Management State
 const usersList = ref([])
@@ -684,12 +890,52 @@ const executeAutoSave = async () => {
         backgroundBlur: backgroundBlur.value,
         backgroundBrightness: backgroundBrightness.value,
         backgroundOpacity: backgroundBrightness.value,
-        sharePageBackgroundEnabled: customSharePageBackgroundEnabled.value
+        sharePageBackgroundEnabled: customSharePageBackgroundEnabled.value,
+        thumbnailsEnabled: customThumbnailsEnabled.value,
+        thumbnailWorkers: customThumbnailWorkers.value
       }
     })
     emit('saved', res.config)
   } catch (err) {
     console.error('AutoSave failed:', err)
+  }
+}
+
+const loadFfmpegStatus = async () => {
+  isCheckingFfmpeg.value = true
+  try {
+    const res = await $fetch('/api/system/ffmpeg-status')
+    ffmpegStatus.value = res
+  } catch {
+    ffmpegStatus.value = { available: false, version: null }
+  } finally {
+    isCheckingFfmpeg.value = false
+  }
+}
+
+const loadThumbStats = async () => {
+  try {
+    const res = await $fetch('/api/thumbnails/stats')
+    thumbStats.value = res
+  } catch {}
+}
+
+const handleClearThumbnails = async () => {
+  isClearingThumbnails.value = true
+  try {
+    const res = await $fetch('/api/thumbnails/clear', { method: 'POST' })
+    success('Cache cleared', `Freed ${formatBytes(res.freedBytes)} (${res.clearedCount} thumbnails removed)`)
+    await loadThumbStats()
+  } catch (err) {
+    error('Clear failed', err?.data?.statusMessage || err.message || 'Could not clear cache')
+  } finally {
+    isClearingThumbnails.value = false
+  }
+}
+
+const copyText = async (text) => {
+  if (await copyToClipboard(text)) {
+    success('Copied', `"${text}" copied to clipboard`)
   }
 }
 
@@ -777,6 +1023,8 @@ const handleDeleteUser = async (targetUser) => {
 
 onMounted(() => {
   loadUsersList()
+  loadFfmpegStatus()
+  loadThumbStats()
   setTimeout(() => {
     isInitialized = true
   }, 100)
@@ -794,6 +1042,8 @@ watch(customMaxUploadSizeMB, () => triggerAutoSave(false))
 watch(backgroundBlur, () => triggerAutoSave(false))
 watch(backgroundBrightness, () => triggerAutoSave(false))
 watch(customSharePageBackgroundEnabled, () => triggerAutoSave(true))
+watch(customThumbnailsEnabled, () => triggerAutoSave(true))
+watch(customThumbnailWorkers, () => triggerAutoSave(false))
 
 watch(() => props.config, (newVal) => {
   if (newVal) {
@@ -805,6 +1055,8 @@ watch(() => props.config, (newVal) => {
     customWebdavEnabled.value = newVal.webdavEnabled ?? true
     customMaxUploadSizeMB.value = newVal.maxUploadSizeMB || 1024
     customSharePageBackgroundEnabled.value = newVal.sharePageBackgroundEnabled ?? false
+    customThumbnailsEnabled.value = newVal.thumbnailsEnabled ?? true
+    customThumbnailWorkers.value = newVal.thumbnailWorkers || 4
   }
 }, { immediate: true })
 
