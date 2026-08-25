@@ -124,7 +124,7 @@
           class="w-full py-1.5 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
         >
           <LinkIcon class="w-3.5 h-3.5" />
-          <span>Direct &amp; Auto-Download Links...</span>
+          <span>Copy Direct Link...</span>
         </button>
 
         <!-- QR Code -->

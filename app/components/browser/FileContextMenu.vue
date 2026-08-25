@@ -40,7 +40,7 @@
         class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-left transition-colors font-medium text-[#0f172a] dark:text-[#fafafa]"
       >
         <LinkIcon class="w-4 h-4 text-cyan-500 shrink-0" />
-        <span>Direct CDN &amp; Download Link...</span>
+        <span>Copy Direct Link</span>
       </button>
 
       <!-- In-Place ZIP Extraction Options (Only for .zip files) -->
