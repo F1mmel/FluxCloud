@@ -15,7 +15,7 @@ export interface CloudEvent {
 type EventListener = (event: CloudEvent) => void
 
 const emitter = new EventEmitter()
-emitter.setMaxListeners(200)
+emitter.setMaxListeners(500)
 
 let watcherInitialized = false
 
@@ -36,9 +36,12 @@ export function broadcastFileEvent(
     details: data.details
   }
 
-  // Emit to specific user and to wildcard/all
-  emitter.emit(`user:${username.toLowerCase()}`, event)
+  // Emit to specific user channel, wildcard/all channel, and global channel
+  if (username) {
+    emitter.emit(`user:${username.toLowerCase()}`, event)
+  }
   emitter.emit('user:all', event)
+  emitter.emit('file_change_global', event)
 }
 
 /**
@@ -46,14 +49,27 @@ export function broadcastFileEvent(
  * Returns an unsubscribe cleanup function
  */
 export function subscribeFileEvents(username: string, listener: EventListener): () => void {
-  const channel = `user:${(username || 'all').toLowerCase()}`
-  emitter.on(channel, listener)
+  const userChannel = `user:${(username || 'all').toLowerCase()}`
+  
+  const handler: EventListener = (ev) => {
+    listener(ev)
+  }
+
+  emitter.on(userChannel, handler)
+  if (userChannel !== 'user:all') {
+    emitter.on('user:all', handler)
+  }
+  emitter.on('file_change_global', handler)
   
   // Also initialize directory watcher if not already active
   initFilesystemWatcher()
 
   return () => {
-    emitter.off(channel, listener)
+    emitter.off(userChannel, handler)
+    if (userChannel !== 'user:all') {
+      emitter.off('user:all', handler)
+    }
+    emitter.off('file_change_global', handler)
   }
 }
 
